@@ -1,0 +1,42 @@
+[
+  {
+    "title": "Celestial Vibe",
+    "artist": "The Midnight Drive",
+    "album": "Lumina",
+    "duration": 225,
+    "img": "album_lumina.jpg",
+    "audioSrc": "./music/celestial-vibe.mp3"
+  },
+  {
+    "title": "Night Rain & Reverie",
+    "artist": "Lo-Fi Girl",
+    "album": "Study Session",
+    "duration": 260,
+    "img": "album_lofi.jpg",
+    "audioSrc": "./music/night-rain-reverie.mp3"
+  },
+  {
+    "title": "Starlight",
+    "artist": "Nova",
+    "album": "Electronic Journey",
+    "duration": 312,
+    "img": "album_nova.jpg",
+    "audioSrc": "./music/starlight.mp3"
+  },
+  {
+    "title": "Neon Pulse",
+    "artist": "Aurora Borealis",
+    "album": "Synthwave",
+    "duration": 295,
+    "img": "album_aurora.jpg",
+    "audioSrc": "./music/neon-pulse.mp3"
+  },
+  {
+    "title": "Blue Note Sessions",
+    "artist": "Miles & Co",
+    "album": "Modern Jazz",
+    "duration": 390,
+    "img": "album_jazz.jpg",
+    "audioSrc": "./music/blue-note-sessions.mp3"
+  }
+]
