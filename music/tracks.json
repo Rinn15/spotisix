@@ -10,12 +10,14 @@
     "tags": ["Ambient", "Calm"]
   },
   {
-    "title": "Night Rain & Reverie",
-    "artist": "Lo-Fi Girl",
-    "album": "Study Session",
+    "title": "Quan Sơn Tửu",
+    "artist": "Đẳng Thập Yêu Quân",
+    "album": "Nhạc trung",
     "duration": 260,
-    "img": "album_lofi.jpg",
-    "audioSrc": "./music/night-rain-reverie.mp3"
+    "img": "quan-son-tu.jpg",
+    "audioSrc": "./music/Quan Sơn Tửu.mp3.mp3"
+    "moods": ["chill", "relaxing", "sleep"],
+    "tags": ["Ambient", "Calm"]
   },
   {
     "title": "Starlight",
