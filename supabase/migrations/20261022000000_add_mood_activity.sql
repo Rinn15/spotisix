@@ -9,7 +9,7 @@ WHERE table_schema = 'public'
   AND column_name IN ('mood', 'activity');
 UPDATE public.published_tracks
 
-  SET mood = 'Bình yên',
+  SET mood = 'chill',
       activity = 'Học tập'
 WHERE id = (
     SELECT id
