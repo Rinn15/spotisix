@@ -3,33 +3,31 @@
 // ═══════════════════════════════════════════════════════════════
 
 // ─── Data ────────────────────────────────────────────────────────
-let songs = [
-  { title: 'Celestial Vibe', artist: 'The Midnight Drive', album: 'Lumina', duration: 225, img: 'album_lumina.jpg', audioSrc: './music/celestial-vibe.mp3' },
-  { title: 'Night Rain & Reverie', artist: 'Lo-Fi Girl', album: 'Study Session', duration: 260, img: 'album_lofi.jpg', audioSrc: './music/night-rain-reverie.mp3' },
-  { title: 'Starlight', artist: 'Nova', album: 'Electronic Journey', duration: 312, img: 'album_nova.jpg', audioSrc: './music/starlight.mp3' },
-  { title: 'Neon Pulse', artist: 'Aurora Borealis', album: 'Synthwave', duration: 295, img: 'album_aurora.jpg', audioSrc: './music/neon-pulse.mp3' },
-  { title: 'Blue Note Sessions', artist: 'Miles & Co', album: 'Modern Jazz', duration: 390, img: 'album_jazz.jpg', audioSrc: './music/blue-note-sessions.mp3' },
-const songs = [
-  { title: 'Celestial Vibe', artist: 'The Midnight Drive', album: 'Lumina', duration: 225, img: 'album_lumina.jpg', mood: 'chill', tags: ['#Chill', '#Ambient'] },
-  { title: 'Night Rain & Reverie', artist: 'Lo-Fi Girl', album: 'Study Session', duration: 260, img: 'album_lofi.jpg', mood: 'chill', tags: ['#Lofi', '#Rain'] },
-  { title: 'Starlight', artist: 'Nova', album: 'Electronic Journey', duration: 312, img: 'album_nova.jpg', mood: 'focus', tags: ['#Focus', '#Synth'] },
-  { title: 'Neon Pulse', artist: 'Aurora Borealis', album: 'Synthwave', duration: 295, img: 'album_aurora.jpg', mood: 'energy', tags: ['#Energy', '#Synthwave'] },
-  { title: 'Blue Note Sessions', artist: 'Miles & Co', album: 'Modern Jazz', duration: 390, img: 'album_jazz.jpg', mood: 'chill', tags: ['#Jazz', '#LateNight'] },
-  { title: 'Deep Work Flow', artist: 'Alpha Mind', album: 'Binaural Focus', duration: 278, img: 'album_lumina.jpg', mood: 'focus', tags: ['#Focus', '#DeepWork'] },
-  { title: 'Sunlight Espresso', artist: 'Café de Paris', album: 'Morning Beats', duration: 210, img: 'album_lofi.jpg', mood: 'chill', tags: ['#Acoustic', '#Morning'] },
-  { title: 'Midnight Thunder', artist: 'Echoes of Sorrow', album: 'Rainy Nocturne', duration: 330, img: 'album_jazz.jpg', mood: 'sad', tags: ['#Sad', '#Ballad'] },
-  { title: 'Chasing Horizons', artist: 'Vivid Skyline', album: 'Hyper Pop', duration: 204, img: 'album_nova.jpg', mood: 'energy', tags: ['#Energy', '#Upbeat'] },
-  { title: 'Sweet Whispers', artist: 'Elena & The Strings', album: 'Velvet Love', duration: 245, img: 'album_lumina.jpg', mood: 'romantic', tags: ['#Romance', '#Acoustic'] },
-  { title: 'Heartbeat Sprint', artist: 'Kinetics', album: 'Beast Mode Vol. 1', duration: 285, img: 'album_aurora.jpg', mood: 'workout', tags: ['#Workout', '#Bass'] },
-  { title: 'Slumber Lullaby', artist: 'Dream Oasis', album: 'Quiet Hours', duration: 350, img: 'album_lofi.jpg', mood: 'sleep', tags: ['#Sleep', '#Ambient'] },
-  { title: 'Tokyo Midnight Disco', artist: 'Shibuya Sound', album: 'Neon Club', duration: 240, img: 'album_nova.jpg', mood: 'party', tags: ['#Party', '#Dance'] },
-  { title: 'Lost in Yesterday', artist: 'Autumn Letters', album: 'Melancholia', duration: 298, img: 'album_jazz.jpg', mood: 'sad', tags: ['#Sad', '#Piano'] },
-  { title: 'Candlelight Waltz', artist: 'Amour Ensemble', album: 'Romantic Evening', duration: 215, img: 'album_lumina.jpg', mood: 'romantic', tags: ['#Romance', '#Strings'] },
-  { title: 'Overdrive Ignite', artist: 'Titan Forge', album: 'Iron & Sweat', duration: 265, img: 'album_aurora.jpg', mood: 'workout', tags: ['#Workout', '#HighBPM'] },
-  { title: 'Cosmic Lullaby', artist: 'Stellar Drifter', album: 'Galaxy Sleep', duration: 380, img: 'album_lumina.jpg', mood: 'sleep', tags: ['#Sleep', '#DeepSleep'] },
-  { title: 'Electric Carnival', artist: 'Bass Frequency', album: 'Rave Culture', duration: 310, img: 'album_nova.jpg', mood: 'party', tags: ['#Party', '#EDM'] },
-];
+// ═══════════════════════════════════════════════════════════════
+//  SPOTISIX — Spotify-inspired music app logic (Unified)
+// ═══════════════════════════════════════════════════════════════
 
+// ─── Data & Mood Definitions ─────────────────────────────────────
+let songs = [
+  { title: 'Celestial Vibe', artist: 'The Midnight Drive', album: 'Lumina', duration: 225, img: 'album_lumina.jpg', audioSrc: './music/celestial-vibe.mp3', mood: 'chill', tags: ['#Chill', '#Ambient'] },
+  { title: 'Night Rain & Reverie', artist: 'Lo-Fi Girl', album: 'Study Session', duration: 260, img: 'album_lofi.jpg', audioSrc: './music/night-rain-reverie.mp3', mood: 'chill', tags: ['#Lofi', '#Rain'] },
+  { title: 'Starlight', artist: 'Nova', album: 'Electronic Journey', duration: 312, img: 'album_nova.jpg', audioSrc: './music/starlight.mp3', mood: 'focus', tags: ['#Focus', '#Synth'] },
+  { title: 'Neon Pulse', artist: 'Aurora Borealis', album: 'Synthwave', duration: 295, img: 'album_aurora.jpg', audioSrc: './music/neon-pulse.mp3', mood: 'energy', tags: ['#Energy', '#Synthwave'] },
+  { title: 'Blue Note Sessions', artist: 'Miles & Co', album: 'Modern Jazz', duration: 390, img: 'album_jazz.jpg', audioSrc: './music/blue-note-sessions.mp3', mood: 'chill', tags: ['#Jazz', '#LateNight'] },
+  { title: 'Deep Work Flow', artist: 'Alpha Mind', album: 'Binaural Focus', duration: 278, img: 'album_lumina.jpg', audioSrc: '', mood: 'focus', tags: ['#Focus', '#DeepWork'] },
+  { title: 'Sunlight Espresso', artist: 'Café de Paris', album: 'Morning Beats', duration: 210, img: 'album_lofi.jpg', audioSrc: '', mood: 'chill', tags: ['#Acoustic', '#Morning'] },
+  { title: 'Midnight Thunder', artist: 'Echoes of Sorrow', album: 'Rainy Nocturne', duration: 330, img: 'album_jazz.jpg', audioSrc: '', mood: 'sad', tags: ['#Sad', '#Ballad'] },
+  { title: 'Chasing Horizons', artist: 'Vivid Skyline', album: 'Hyper Pop', duration: 204, img: 'album_nova.jpg', audioSrc: '', mood: 'energy', tags: ['#Energy', '#Upbeat'] },
+  { title: 'Sweet Whispers', artist: 'Elena & The Strings', album: 'Velvet Love', duration: 245, img: 'album_lumina.jpg', audioSrc: '', mood: 'romantic', tags: ['#Romance', '#Acoustic'] },
+  { title: 'Heartbeat Sprint', artist: 'Kinetics', album: 'Beast Mode Vol. 1', duration: 285, img: 'album_aurora.jpg', audioSrc: '', mood: 'workout', tags: ['#Workout', '#Bass'] },
+  { title: 'Slumber Lullaby', artist: 'Dream Oasis', album: 'Quiet Hours', duration: 350, img: 'album_lofi.jpg', audioSrc: '', mood: 'sleep', tags: ['#Sleep', '#Ambient'] },
+  { title: 'Tokyo Midnight Disco', artist: 'Shibuya Sound', album: 'Neon Club', duration: 240, img: 'album_nova.jpg', audioSrc: '', mood: 'party', tags: ['#Party', '#Dance'] },
+  { title: 'Lost in Yesterday', artist: 'Autumn Letters', album: 'Melancholia', duration: 298, img: 'album_jazz.jpg', audioSrc: '', mood: 'sad', tags: ['#Sad', '#Piano'] },
+  { title: 'Candlelight Waltz', artist: 'Amour Ensemble', album: 'Romantic Evening', duration: 215, img: 'album_lumina.jpg', audioSrc: '', mood: 'romantic', tags: ['#Romance', '#Strings'] },
+  { title: 'Overdrive Ignite', artist: 'Titan Forge', album: 'Iron & Sweat', duration: 265, img: 'album_aurora.jpg', audioSrc: '', mood: 'workout', tags: ['#Workout', '#HighBPM'] },
+  { title: 'Cosmic Lullaby', artist: 'Stellar Drifter', album: 'Galaxy Sleep', duration: 380, img: 'album_lumina.jpg', audioSrc: '', mood: 'sleep', tags: ['#Sleep', '#DeepSleep'] },
+  { title: 'Electric Carnival', artist: 'Bass Frequency', album: 'Rave Culture', duration: 310, img: 'album_nova.jpg', audioSrc: '', mood: 'party', tags: ['#Party', '#EDM'] }
+];
 const moodDefinitions = [
   {
     id: 'chill',
