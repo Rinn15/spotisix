@@ -8,6 +8,8 @@ const runtimeAssets = [
   'karaoke.js',
   'nearby.js',
   'shared-listening.js',
+  'js/player.js',
+  'css/player.css',
   'album_aurora.jpg',
   'album_jazz.jpg',
   'album_lofi.jpg',
