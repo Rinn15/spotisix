@@ -113,6 +113,10 @@
         <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
         <span>Tìm kiếm</span>
       </button>
+      <button class="nav-item" id="nav-mood" aria-label="Tâm trạng" onclick="showView('mood')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+        <span>Tâm trạng</span>
+      </button>
       <button class="nav-item" id="nav-library" aria-label="Thư viện" onclick="showView('library')">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z"/></svg>
         <span>Thư viện</span>
@@ -245,6 +249,7 @@
         <section class="hero-section">
           <div class="home-filter-chips" aria-label="Bộ lọc trang chủ">
             <button class="home-filter-chip active" type="button">Tất cả</button>
+            <button class="home-filter-chip" id="chip-mood" type="button" onclick="selectMoodFilter()">Tâm trạng</button>
             <button class="home-filter-chip" type="button" onclick="showView('library');switchLibTab('songs')">Nhạc</button>
             <button class="home-filter-chip" type="button" onclick="showView('library');switchLibTab('albums')">Album</button>
             <button class="home-filter-chip" type="button" onclick="showView('library');switchLibTab('playlists')">Playlist</button>
@@ -260,6 +265,30 @@
             <div class="hero-card" onclick="playSong(3)"><img src="album_aurora.jpg" alt="Aurora" class="hero-card-img"/><div class="hero-card-info"><span>Neon Pulse</span></div><button class="hero-play-btn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button></div>
             <div class="hero-card" onclick="playSong(4)"><img src="album_jazz.jpg" alt="Jazz" class="hero-card-img"/><div class="hero-card-info"><span>Blue Note</span></div><button class="hero-play-btn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button></div>
             <div class="hero-card" onclick="playSong(0)"><img src="album_lumina.jpg" alt="Lumina2" class="hero-card-img"/><div class="hero-card-info"><span>Midnight Drive</span></div><button class="hero-play-btn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button></div>
+          </div>
+        </section>
+
+        <!-- Mood Selector & Recommended Songs Section -->
+        <section class="mood-section" id="mood-section" aria-labelledby="mood-section-title">
+          <div class="section-title-row">
+            <div>
+              <span class="mood-section-badge">✨ Chọn tâm trạng</span>
+              <h2 id="mood-section-title">Hôm nay bạn muốn cảm thấy thế nào?</h2>
+              <p class="section-subtitle">Chạm vào một tâm trạng để SpotiSix tạo danh sách đề xuất phù hợp nhất với bạn</p>
+            </div>
+            <div class="mood-scroll-controls">
+              <button class="mood-scroll-btn" type="button" onclick="scrollMoods(-1)" aria-label="Cuộn sang trái">‹</button>
+              <button class="mood-scroll-btn" type="button" onclick="scrollMoods(1)" aria-label="Cuộn sang phải">›</button>
+              <button class="see-all-btn" type="button" onclick="showView('mood')">Khám phá tất cả ›</button>
+            </div>
+          </div>
+          <div class="mood-cards-container" id="home-mood-cards" role="radiogroup" aria-label="Chọn tâm trạng âm nhạc">
+            <!-- Rendered by JS -->
+          </div>
+
+          <!-- Dynamic Mood Recommended Tracklist Container -->
+          <div class="mood-recommendations-panel" id="mood-recommendations-panel">
+            <!-- Rendered dynamically for active mood -->
           </div>
         </section>
 
@@ -339,6 +368,14 @@
             </div>
           </section>
         </div>
+      </div>
+    </div>
+
+    <!-- MOOD VIEW -->
+    <div class="view" id="view-mood">
+      <header class="topbar"><h1 class="topbar-title">Khám phá tâm trạng</h1></header>
+      <div class="content-scroll" id="view-mood-content">
+        <!-- Rendered by renderMoodView() -->
       </div>
     </div>
 
