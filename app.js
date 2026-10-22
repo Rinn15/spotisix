@@ -3,12 +3,12 @@
 // ═══════════════════════════════════════════════════════════════
 
 // ─── Data ────────────────────────────────────────────────────────
-const songs = [
-  { title: 'Celestial Vibe', artist: 'The Midnight Drive', album: 'Lumina', duration: 225, img: 'album_lumina.jpg' },
-  { title: 'Night Rain & Reverie', artist: 'Lo-Fi Girl', album: 'Study Session', duration: 260, img: 'album_lofi.jpg' },
-  { title: 'Starlight', artist: 'Nova', album: 'Electronic Journey', duration: 312, img: 'album_nova.jpg' },
-  { title: 'Neon Pulse', artist: 'Aurora Borealis', album: 'Synthwave', duration: 295, img: 'album_aurora.jpg' },
-  { title: 'Blue Note Sessions', artist: 'Miles & Co', album: 'Modern Jazz', duration: 390, img: 'album_jazz.jpg' },
+let songs = [
+  { title: 'Celestial Vibe', artist: 'The Midnight Drive', album: 'Lumina', duration: 225, img: 'album_lumina.jpg', audioSrc: './music/celestial-vibe.mp3' },
+  { title: 'Night Rain & Reverie', artist: 'Lo-Fi Girl', album: 'Study Session', duration: 260, img: 'album_lofi.jpg', audioSrc: './music/night-rain-reverie.mp3' },
+  { title: 'Starlight', artist: 'Nova', album: 'Electronic Journey', duration: 312, img: 'album_nova.jpg', audioSrc: './music/starlight.mp3' },
+  { title: 'Neon Pulse', artist: 'Aurora Borealis', album: 'Synthwave', duration: 295, img: 'album_aurora.jpg', audioSrc: './music/neon-pulse.mp3' },
+  { title: 'Blue Note Sessions', artist: 'Miles & Co', album: 'Modern Jazz', duration: 390, img: 'album_jazz.jpg', audioSrc: './music/blue-note-sessions.mp3' },
 ];
 
 const playlistStorageKey = 'spotisix.playlists';
@@ -68,8 +68,45 @@ let librarySearchQuery = '';
 let seekingPointerId = null;
 let volumePointerId = null;
 
+// ─── Music library manifest ───────────────────────────────────────
+// Add tracks by editing music/tracks.json; app.js does not need editing.
+async function loadMusicManifest() {
+  try {
+    const response = await fetch('./music/tracks.json', { cache: 'no-store' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const manifest = await response.json();
+    if (!Array.isArray(manifest) || manifest.length === 0) {
+      throw new Error('tracks.json must contain a non-empty array of tracks');
+    }
+
+    const validTracks = manifest.filter(track =>
+      track && typeof track.title === 'string' && track.title.trim() &&
+      typeof track.artist === 'string' && typeof track.audioSrc === 'string' && track.audioSrc.trim()
+    ).map(track => ({
+      title: track.title.trim(),
+      artist: track.artist.trim() || 'Không rõ nghệ sĩ',
+      album: typeof track.album === 'string' && track.album.trim() ? track.album.trim() : 'Bài hát của tôi',
+      duration: Number.isFinite(Number(track.duration)) && Number(track.duration) > 0 ? Number(track.duration) : 0,
+      img: typeof track.img === 'string' && track.img.trim() ? track.img.trim() : 'album_lumina.jpg',
+      audioSrc: track.audioSrc.trim(),
+    }));
+
+    if (validTracks.length === 0) throw new Error('No valid tracks found in tracks.json');
+    songs = validTracks;
+    state.playbackQueue = songs.map((_, index) => index);
+    // Keep default playlists valid when the manifest contains fewer than five tracks.
+    defaultPlaylists.forEach(playlist => {
+      playlist.tracks = playlist.tracks.filter(index => index < songs.length);
+    });
+    console.info(`SpotiSix loaded ${songs.length} track(s) from music/tracks.json`);
+  } catch (error) {
+    console.warn('Could not load music/tracks.json; using the built-in fallback list.', error);
+  }
+}
+
 // ─── Init ─────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadMusicManifest();
   setGreeting();
   initializePlaylistFeatures();
   audioPlayer = document.getElementById('audio-player');
@@ -182,6 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }));
   buildUpNext();
   initializeAuth();
+  initializeSpotify();
   initializeAccountFeatures();
   buildQueuePanel();
   void restoreDeviceAudio().catch(error => {
@@ -992,7 +1030,6 @@ function focusHeaderSearch() {
 async function initializeAuth() {
   setAuthSession(null);
   const config = window.SPOTISIX_SUPABASE_CONFIG;
-  const callbackError = consumeAuthCallbackError();
   const setupNote = document.getElementById('auth-setup-note');
   if (!config?.url || !config?.anonKey) {
     setupNote.classList.remove('hidden');
@@ -1044,29 +1081,9 @@ async function initializeAuth() {
       if (event === 'SIGNED_IN' && session) showEmailConfirmationSuccess(session.user);
     });
     setupNote.classList.add('hidden');
-    if (callbackError) {
-      const pendingEmail = localStorage.getItem(pendingConfirmationEmailKey) || '';
-      showEmailConfirmation(pendingEmail);
-      const status = document.getElementById('resend-email-status');
-      status.textContent = callbackError.code === 'otp_expired'
-        ? 'Liên kết xác nhận không hợp lệ hoặc đã hết hạn. Nhập email rồi gửi liên kết mới.'
-        : 'Không thể xác nhận liên kết này. Nhập email để yêu cầu gửi liên kết xác nhận mới.';
-      status.classList.add('is-error');
-    }
   } catch (error) {
     setAuthStatus(error.message || 'Không thể khởi tạo đăng nhập. Kiểm tra cấu hình Supabase.', true);
   }
-}
-
-function consumeAuthCallbackError() {
-  const callbackUrl = new URL(window.location.href);
-  const params = new URLSearchParams(callbackUrl.hash.slice(1));
-  const code = params.get('error_code') || params.get('error');
-  if (!code) return null;
-
-  callbackUrl.hash = '';
-  window.history.replaceState({}, document.title, callbackUrl.toString());
-  return { code };
 }
 
 function setAuthSession(session) {
@@ -1102,8 +1119,7 @@ function setAuthSession(session) {
 }
 
 function authEmailRedirectUrl() {
-  const configuredUrl = window.SPOTISIX_SUPABASE_CONFIG?.authRedirectUrl;
-  const redirectUrl = new URL(configuredUrl || window.location.href);
+  const redirectUrl = new URL(window.location.href);
   redirectUrl.search = '';
   redirectUrl.hash = '';
   return redirectUrl.toString();
@@ -1114,7 +1130,7 @@ function showEmailConfirmation(email) {
   document.getElementById('auth-switch-prompt').classList.add('hidden');
   document.getElementById('auth-status').classList.add('hidden');
   document.getElementById('email-confirmation').classList.remove('hidden');
-  document.getElementById('pending-confirm-email').value = email;
+  document.getElementById('pending-confirm-email').textContent = email;
   document.getElementById('resend-email-status').textContent = '';
   document.getElementById('resend-email-status').classList.remove('is-error');
 }
@@ -1136,12 +1152,7 @@ async function resendConfirmationEmail() {
     setAuthStatus('Dịch vụ đăng nhập chưa được khởi tạo. Tải lại trang và thử lại.', true);
     return;
   }
-  const emailInput = document.getElementById('pending-confirm-email');
-  const email = emailInput.value.trim();
-  if (!emailInput.checkValidity()) {
-    emailInput.reportValidity();
-    return;
-  }
+  const email = document.getElementById('pending-confirm-email').textContent.trim();
   const button = document.getElementById('resend-email-btn');
   const status = document.getElementById('resend-email-status');
   button.disabled = true;
@@ -1154,7 +1165,6 @@ async function resendConfirmationEmail() {
       options: { emailRedirectTo: authEmailRedirectUrl() },
     });
     if (error) throw error;
-    localStorage.setItem(pendingConfirmationEmailKey, email);
     status.textContent = 'Đã gửi lại email xác nhận. Kiểm tra cả thư mục spam/quảng cáo.';
   } catch (error) {
     status.textContent = error.message || 'Không gửi lại được email xác nhận. Vui lòng thử lại.';
