@@ -9,6 +9,7 @@
 
 // ─── Data & Mood Definitions ─────────────────────────────────────
 let songs = [
+  { title: 'Quan Sơn Tử', artist: 'Đẳng Thập Yêu Quân', album: 'Lumina', duration: 235, img: 'quan-son-tu.jpg', audioSrc: './music/Quan Sơn Tửu.mp3', mood: 'chill', tags: ['#Chill', '#Ambient'] },
   { title: 'Celestial Vibe', artist: 'The Midnight Drive', album: 'Lumina', duration: 225, img: 'album_lumina.jpg', audioSrc: './music/celestial-vibe.mp3', mood: 'chill', tags: ['#Chill', '#Ambient'] },
   { title: 'Night Rain & Reverie', artist: 'Lo-Fi Girl', album: 'Study Session', duration: 260, img: 'album_lofi.jpg', audioSrc: './music/night-rain-reverie.mp3', mood: 'chill', tags: ['#Lofi', '#Rain'] },
   { title: 'Starlight', artist: 'Nova', album: 'Electronic Journey', duration: 312, img: 'album_nova.jpg', audioSrc: './music/starlight.mp3', mood: 'focus', tags: ['#Focus', '#Synth'] },
