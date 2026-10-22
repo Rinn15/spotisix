@@ -6,7 +6,8 @@
     "duration": 709,
     "img": "album_lumina.jpg",
     "audioSrc": "./music/celestial-vibe.mp3",
-    "moods": ["Bình yên"]
+    "moods": ["Bình yên", "relaxing", "sleep"],
+    "tags": ["Ambient", "Calm"]
   },
   {
     "title": "Night Rain & Reverie",
