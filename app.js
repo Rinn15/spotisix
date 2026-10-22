@@ -912,15 +912,18 @@ async function publishAudioFiles(fileList) {
       const { data: track, error: insertError } = await supabaseClient
         .from('published_tracks')
         .insert({
-          uploader_id: session.user.id,
-          title,
-          artist: session.user.user_metadata?.display_name || session.user.email?.split('@')[0] || 'Người dùng SpotiSix',
-          album: 'Thư viện SpotiSix',
-          search_text: searchText,
-          object_path: objectPath,
-          mime_type: file.type,
-          size_bytes: file.size,
-        })
+            uploader_id: session.user.id,
+            title,
+            artist: session.user.user_metadata?.display_name || session.user.email?.split('@')[0] || 'Người dùng SpotiSix',
+            album: 'Thư viện SpotiSix',
+            search_text: searchText,
+            object_path: objectPath,
+            mime_type: file.type,
+            size_bytes: file.size,
+
+            mood: document.getElementById('community-mood').value || null,
+            activity: document.getElementById('community-activity').value || null,})
+
         .select('id, title, artist, album, object_path, created_at')
         .single();
       if (insertError) {
@@ -2199,6 +2202,32 @@ function handleSearch(q) {
   }
 }
 
+async function getSongsByMoodActivity(mood = null, activity = null) {
+    if (!supabaseClient) {
+        console.error("Supabase chưa được kết nối!");
+        return [];
+    }
+    let query = supabaseClient
+        .from("published_tracks")
+        .select("*");
+
+    if (mood) {
+        query = query.eq("mood", mood);
+    }
+
+    if (activity) {
+        query = query.eq("activity", activity);
+    }
+    const { data, error } = await query
+        .order("created_at", { ascending: false });
+
+    if (error) {
+        console.error("Lỗi truy vấn bài hát:", error.message);
+        return [];
+    }
+    return data;
+}
+
 async function searchPublishedTracks(query, requestId) {
   if (!supabaseClient) return;
   const results = document.getElementById('search-results');
@@ -2583,3 +2612,54 @@ function disconnectSpotify() {
   const searchInput = document.getElementById('search-input');
   if (searchInput.value.trim()) handleSearch(searchInput.value);
 }
+
+async function updatePublishedTrackMoodActivity(trackId, mood, activity) {
+}
+async function getPublishedTracksByMoodActivity(
+    mood = null,
+    activity = null,
+    limit = 30
+) {
+    if (!supabaseClient) {
+        throw new Error("Supabase chưa được cấu hình.");
+    }
+
+    const safeLimit = Math.min(
+        100,
+        Math.max(1, Number.parseInt(limit, 10) || 30)
+    );
+
+    let query = supabaseClient
+        .from("published_tracks")
+        .select(
+            "id, title, artist, album, object_path, mood, activity, created_at"
+        );
+
+    const selectedMood =
+        typeof mood === "string" ? mood.trim() : "";
+
+    const selectedActivity =
+        typeof activity === "string" ? activity.trim() : "";
+
+    if (selectedMood) {
+        query = query.eq("mood", selectedMood);
+    }
+
+    if (selectedActivity) {
+        query = query.eq("activity", selectedActivity);
+    }
+
+    const { data, error } = await query
+        .order("created_at", { ascending: false })
+        .limit(safeLimit);
+
+    if (error) {
+        console.error("Không thể lọc bài hát:", error);
+        throw error;
+    }
+
+    return data || [];
+}
+
+window.getPublishedTracksByMoodActivity =
+    getPublishedTracksByMoodActivity;
