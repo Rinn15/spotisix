@@ -8,6 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="style.css"/>
+  <link rel="stylesheet" href="css/player.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer"/>
 </head>
 <body>
   <section class="auth-screen" id="auth-screen" aria-labelledby="auth-title">
@@ -289,6 +291,36 @@
           <!-- Dynamic Mood Recommended Tracklist Container -->
           <div class="mood-recommendations-panel" id="mood-recommendations-panel">
             <!-- Rendered dynamically for active mood -->
+          </div>
+        </section>
+
+        <!-- ══════ Player Mood Selector UI (css/player.css + js/player.js) ══════ -->
+        <section class="mood-player-section" id="mood-player-section" aria-labelledby="mood-player-title">
+          <div class="section-header">
+            <div class="section-header-left">
+              <span class="mood-player-badge"><i class="fa-solid fa-wand-magic-sparkles"></i> Chọn tâm trạng</span>
+              <h2 class="section-title" id="mood-player-title">Hôm nay bạn muốn nghe gì?</h2>
+              <p class="section-desc">Chạm vào một tâm trạng để SpotiSix gợi ý nhạc phù hợp nhất</p>
+            </div>
+            <div class="mood-player-nav-controls">
+              <button class="mood-player-nav-btn" type="button" onclick="scrollPlayerMoods(-1)" aria-label="Cuộn trái">
+                <i class="fa-solid fa-chevron-left"></i>
+              </button>
+              <button class="mood-player-nav-btn" type="button" onclick="scrollPlayerMoods(1)" aria-label="Cuộn phải">
+                <i class="fa-solid fa-chevron-right"></i>
+              </button>
+              <button class="mood-player-see-all" type="button" onclick="showView('mood')">Khám phá tất cả ›</button>
+            </div>
+          </div>
+
+          <!-- Mood Cards Carousel -->
+          <div class="mood-player-cards-track" id="player-mood-cards" role="radiogroup" aria-label="Chọn tâm trạng âm nhạc">
+            <!-- Rendered by js/player.js -->
+          </div>
+
+          <!-- Recommended Songs Panel -->
+          <div class="mood-player-recs" id="player-mood-recs-panel">
+            <!-- Rendered by js/player.js -->
           </div>
         </section>
 
@@ -648,5 +680,6 @@
   <script type="module" src="nearby.js"></script>
   <script type="module" src="shared-listening.js"></script>
   <script type="module" src="karaoke.js"></script>
+  <script src="js/player.js" vite-ignore></script>
 </body>
 </html>
