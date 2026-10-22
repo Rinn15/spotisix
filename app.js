@@ -233,6 +233,8 @@ async function loadMusicManifest() {
       duration: Number.isFinite(Number(track.duration)) && Number(track.duration) > 0 ? Number(track.duration) : 0,
       img: typeof track.img === 'string' && track.img.trim() ? track.img.trim() : 'album_lumina.jpg',
       audioSrc: track.audioSrc.trim(),
+      moods: Array.isArray(track.moods) ? track.moods : [],
+      tags: Array.isArray(track.tags) ? track.tags : [],
     }));
 
     if (validTracks.length === 0) throw new Error('No valid tracks found in tracks.json');
@@ -401,26 +403,33 @@ function initializeMoodFeatures() {
   renderMoodRecommendations(activeMoodId);
 }
 
+
 function getMoodTrackIndices(moodId, filterTag = 'Tất cả') {
-  const mood = moodDefinitions.find(m => m.id === moodId) || moodDefinitions[0];
-  let indices = [...mood.trackIndices];
-  const offset = moodShuffleOffsets.get(moodId) || 0;
-  if (offset > 0) {
-    const rotateCount = offset % indices.length;
-    indices = [...indices.slice(rotateCount), ...indices.slice(0, rotateCount)];
-  }
+  // Chỉ lấy bài hát thực sự có Mood tương ứng.
+  let indices = songs
+    .map((song, index) => ({ song, index }))
+    .filter(({ song }) =>
+      Array.isArray(song.moods) &&
+      song.moods.includes(moodId)
+    );
+
+  // Lọc thêm theo thể loại hoặc từ khóa nếu người dùng chọn.
   if (filterTag && filterTag !== 'Tất cả' && filterTag !== 'all') {
-    indices = indices.filter(idx => {
-      const song = songs[idx];
-      if (!song) return false;
-      const tagLower = filterTag.toLowerCase();
-      const inSongTags = Array.isArray(song.tags) && song.tags.some(t => t.toLowerCase().includes(tagLower));
-      const inSongTitle = song.title.toLowerCase().includes(tagLower) || song.artist.toLowerCase().includes(tagLower) || song.album.toLowerCase().includes(tagLower);
-      return inSongTags || inSongTitle;
+    const keyword = filterTag.toLowerCase();
+
+    indices = indices.filter(({ song }) => {
+      const tags = Array.isArray(song.tags) ? song.tags : [];
+
+      return (
+        tags.some(tag => tag.toLowerCase().includes(keyword)) ||
+        song.title.toLowerCase().includes(keyword) ||
+        song.artist.toLowerCase().includes(keyword) ||
+        song.album.toLowerCase().includes(keyword)
+      );
     });
-    if (!indices.length) indices = [...mood.trackIndices];
   }
-  return indices;
+
+  return indices.map(({ index }) => index);
 }
 
 function setActiveMood(moodId, shouldScroll = false) {
@@ -469,23 +478,58 @@ function selectMoodFilter() {
   }
 }
 
+function shuffleArray(array) {
+  const result = [...array];
+
+  // Fisher–Yates shuffle
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+
+  return result;
+}
+
+
 function playMoodTracks(moodId, shuffle = false) {
   if (sharedListeningRole === 'guest') {
     showAppToast('Chủ phòng điều khiển bài hát khi đang nghe chung.');
     return;
   }
-  const mood = moodDefinitions.find(m => m.id === moodId) || moodDefinitions[0];
-  const tracks = getMoodTrackIndices(moodId, activeMoodFilterTag);
-  if (!tracks.length) return;
-  let queue = [...tracks];
-  if (shuffle) {
-    queue.sort(() => Math.random() - 0.5);
+
+  const mood = moodDefinitions.find(m => m.id === moodId);
+  if (!mood) return;
+
+  const tracks = getMoodTrackIndices(
+    moodId,
+    activeMoodFilterTag
+  );
+
+  if (tracks.length === 0) {
+    showAppToast('Chưa có bài hát phù hợp với Mood này.');
+    return;
   }
+
+  // Tạo Queue mới chỉ gồm các bài phù hợp.
+  const queue = shuffle
+    ? shuffleArray(tracks)
+    : [...tracks];
+
   state.playbackQueue = queue;
   state.queuePosition = 0;
-  playSong(queue[0]);
-  showAppToast(`Đang phát: ${mood.name} (${queue.length} bài hát)`);
+
+  // Phát bài đầu tiên trong Queue.
+  playSong(state.playbackQueue[0]);
+
+  // Cập nhật giao diện danh sách chờ.
+  buildQueuePanel();
+  buildUpNext();
+
+  showAppToast(
+    `Đang phát: ${mood.name} (${queue.length} bài hát)`
+  );
 }
+
 
 function saveMoodToPlaylist(moodId) {
   const mood = moodDefinitions.find(m => m.id === moodId) || moodDefinitions[0];
