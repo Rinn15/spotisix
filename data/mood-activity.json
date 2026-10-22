@@ -1,0 +1,90 @@
+{
+  "moods": [
+    {
+      "id": "happy",
+      "name": "Happy"
+    },
+    {
+      "id": "funny",
+      "name": "Funny"
+    },
+    {
+      "id": "chill",
+      "name": "Chill"
+    },
+    {
+      "id": "sad",
+      "name": "Sad"
+    },
+    {
+      "id": "relaxing",
+      "name": "Relaxing"
+    },
+    {
+      "id": "angry",
+      "name": "Angry"
+    },
+    {
+      "id": "stressed",
+      "name": "Stressed"
+    },
+    {
+      "id": "tired",
+      "name": "Tired"
+    },
+    {
+      "id": "curious",
+      "name": "Curious"
+    }
+  ],
+  "activities": [
+    {
+      "category": "personal_home",
+      "categoryName": "Hoạt động cá nhân / Ở nhà",
+      "items": [
+        "Relaxing",
+        "Reading books",
+        "Watching movies",
+        "Surfing the web",
+        "Cooking",
+        "Cleaning the house",
+        "Playing games",
+        "Sleep",
+        "Party"
+      ]
+    },
+    {
+      "category": "study_work",
+      "categoryName": "Học tập & Làm việc",
+      "items": [
+        "Studying",
+        "Meeting",
+        "Driving",
+        "Work"
+      ]
+    },
+    {
+      "category": "sports",
+      "categoryName": "Thể thao",
+      "items": [
+        "Walking",
+        "Running",
+        "Gymming",
+        "Yoga",
+        "Swimming",
+        "Cycling"
+      ]
+    },
+    {
+      "category": "social_outdoor",
+      "categoryName": "Giao lưu & Giải trí bên ngoài",
+      "items": [
+        "Drink Coffee",
+        "Going shopping",
+        "Eating out",
+        "Traveling",
+        "Taking photos"
+      ]
+    }
+  ]
+}
