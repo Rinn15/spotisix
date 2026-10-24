@@ -1627,7 +1627,9 @@ async function publishAudioFiles(fileList) {
             size_bytes: file.size,
 
             mood: document.getElementById('community-mood')?.value || null,
-            activity: document.getElementById('community-activity')?.value || null,})
+            // activity: document.getElementById('community-activity')?.value || null,
+          }
+        )
 
         .select('id, title, artist, album, object_path, created_at')
         .single();
