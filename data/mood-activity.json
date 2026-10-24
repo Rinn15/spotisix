@@ -21,6 +21,10 @@
       "name": "Relaxing"
     },
     {
+      "id": "excited",
+      "name": "Excited"
+    },
+    {
       "id": "angry",
       "name": "Angry"
     },
