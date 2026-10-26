@@ -15,7 +15,7 @@
     "album": "Nhạc trung",
     "duration": 260,
     "img": "quan-son-tu.jpg",
-    "audioSrc": "./music/Quan Sơn Tửu.mp3.mp3"
+    "audioSrc": "./music/Quan Sơn Tửu.mp3.mp3",
     "moods": ["chill", "relaxing", "sleep"],
     "tags": ["Ambient", "Calm"]
   },

@@ -407,12 +407,22 @@ function initializeMoodFeatures() {
 
 function getMoodTrackIndices(moodId, filterTag = 'Tất cả') {
   // Chỉ lấy bài hát thực sự có Mood tương ứng.
+  // Hỗ trợ cả bài mẫu dùng `mood`, bài mới dùng `moods`,
+  // và bài đăng công khai từ Supabase.
+  const normalizeMoodId = value => {
+    const id = String(value || '').trim().toLowerCase();
+    // Một số dữ liệu cũ dùng "bad" để chỉ Mood buồn; ID chuẩn trên web là "sad".
+    return id === 'bad' ? 'sad' : id;
+  };
+
+  const targetMood = normalizeMoodId(moodId);
   let indices = songs
     .map((song, index) => ({ song, index }))
-    .filter(({ song }) =>
-      Array.isArray(song.moods) &&
-      song.moods.includes(moodId)
-    );
+    .filter(({ song }) => {
+      const songMoods = Array.isArray(song.moods) ? [...song.moods] : [];
+      if (song.mood) songMoods.push(song.mood);
+      return songMoods.some(mood => normalizeMoodId(mood) === targetMood);
+    });
 
   // Lọc thêm theo thể loại hoặc từ khóa nếu người dùng chọn.
   if (filterTag && filterTag !== 'Tất cả' && filterTag !== 'all') {
@@ -1631,7 +1641,7 @@ async function publishAudioFiles(fileList) {
           }
         )
 
-        .select('id, title, artist, album, object_path, created_at')
+        .select('id, title, artist, album, object_path, mood, activity, created_at')
         .single();
       if (insertError) {
         const { error: cleanupError } = await supabaseClient.storage.from('community-music').remove([objectPath]);
@@ -1665,6 +1675,11 @@ function addPublishedTrackToPlayer(track) {
     duration: 0,
     img: 'album_lumina.jpg',
     audioSrc: data.publicUrl,
+    // Mood của bài đăng công khai được lưu trong Supabase ở cột `mood`
+    // (một giá trị đơn), còn bộ lọc Mood của trình phát dùng mảng `moods`.
+    mood: track.mood || null,
+    moods: track.mood ? [String(track.mood).trim().toLowerCase() === 'bad' ? 'sad' : String(track.mood).trim().toLowerCase()] : [],
+    tags: [],
     publishedTrackId: track.id,
   }) - 1;
   publishedTrackIndexes.set(track.id, index);
