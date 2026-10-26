@@ -3393,3 +3393,35 @@ async function getPublishedTracksByMoodActivity(
 
 window.getPublishedTracksByMoodActivity =
     getPublishedTracksByMoodActivity;
+// dữ liệu api tìm kiếm nhạc youtube
+async function searchYouTubeMusic(query) {
+  const API_KEY = 'AIzaSyAMtdX5n3nfAVxCO8xoEEQicyNh3cpb9Mw';
+
+  const url = new URL(
+    'https://www.googleapis.com/youtube/v3/search'
+  );
+
+  url.search = new URLSearchParams({
+    part: 'snippet',
+    q: query + ' music',
+    type: 'video',
+    videoEmbeddable: 'true',
+    maxResults: '10',
+    key: API_KEY
+  });
+
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error('Không thể tìm nhạc trên YouTube');
+  }
+
+  const data = await response.json();
+
+  return data.items.map(item => ({
+    title: item.snippet.title,
+    videoId: item.id.videoId,
+    thumbnail: item.snippet.thumbnails.medium.url,
+    source: 'youtube'
+  }));
+}
