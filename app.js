@@ -1925,25 +1925,33 @@ async function publishAudioFiles(fileList) {
     uploadStatus.textContent = message;
     uploadStatus.classList.toggle('is-error', isError);
   };
-  if (!supabaseClient) {
-    const message = 'Không thể đăng nhạc: Supabase chưa được cấu hình.';
-    setUploadStatus(message, true);
-    showAppToast(message);
-    return;
+
+  const cloudflare = getCloudflareConfig();
+  const usingCloudflare = Boolean(cloudflare.enabled && cloudflare.uploadEndpoint && cloudflare.publicUrl);
+
+  let session = null;
+  if (supabaseClient) {
+    const { data: { session: supabaseSession }, error: sessionError } = await supabaseClient.auth.getSession();
+    if (sessionError) {
+      const message = `Không thể xác minh tài khoản: ${sessionError.message}`;
+      setUploadStatus(message, true);
+      showAppToast(message);
+      return;
+    }
+    session = supabaseSession;
   }
-  const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
-  if (sessionError) {
-    const message = `Không thể xác minh tài khoản: ${sessionError.message}`;
-    setUploadStatus(message, true);
-    showAppToast(message);
-    return;
+
+  if (!session) {
+    const demoSession = getDemoSession();
+    if (!demoSession) {
+      const message = 'Bạn chưa đăng nhập. Hãy đăng nhập SpotiSix rồi chọn Đăng nhạc lên SpotiSix lần nữa.';
+      setUploadStatus(message, true);
+      showAppToast(message);
+      return;
+    }
+    session = demoSession;
   }
-  if (!session?.user) {
-    const message = 'Bạn chưa đăng nhập. Hãy đăng nhập SpotiSix rồi chọn Đăng nhạc lên SpotiSix lần nữa.';
-    setUploadStatus(message, true);
-    showAppToast(message);
-    return;
-  }
+
   const validFiles = files.filter(file => file.type.startsWith('audio/'));
   if (!validFiles.length) {
     const message = 'Chọn tệp âm thanh hợp lệ để đăng.';
@@ -1954,43 +1962,69 @@ async function publishAudioFiles(fileList) {
 
   const uploadButton = document.getElementById('community-audio-upload-btn');
   if (uploadButton) uploadButton.disabled = true;
-  setUploadStatus('Đang tải nhạc lên thư viện công khai…');
+  setUploadStatus(usingCloudflare ? 'Đang tải nhạc lên Cloudflare R2…' : 'Đang tải nhạc lên thư viện công khai…');
   try {
     for (const file of validFiles) {
       if (file.size > 52428800) {
         throw new Error(`${file.name} vượt quá giới hạn 50 MB.`);
       }
       const safeName = file.name.replace(/[^\w.-]+/g, '-').replace(/^-+|-+$/g, '') || 'audio';
-      const objectPath = `${session.user.id}/${crypto.randomUUID()}-${safeName}`;
-      const { error: uploadError } = await supabaseClient.storage
-        .from('community-music')
-        .upload(objectPath, file, { contentType: file.type, cacheControl: '3600', upsert: false });
-      if (uploadError) throw new Error(`Không thể tải ${file.name} lên: ${uploadError.message}`);
+      const userId = session.user.id || session.user.email || 'anonymous';
+      const objectPath = `${userId}/${crypto.randomUUID()}-${safeName}`;
+
+      let uploaded = null;
+      if (usingCloudflare) {
+        uploaded = await uploadAudioToRemoteStorage(file, userId, safeName);
+      } else {
+        if (!supabaseClient) {
+          throw new Error('Không thể đăng nhạc: Supabase chưa được cấu hình.');
+        }
+        const { error: uploadError } = await supabaseClient.storage
+          .from('community-music')
+          .upload(objectPath, file, { contentType: file.type, cacheControl: '3600', upsert: false });
+        if (uploadError) throw new Error(`Không thể tải ${file.name} lên: ${uploadError.message}`);
+      }
 
       const title = file.name.replace(/\.[^.]+$/, '').trim() || file.name;
-      const searchText = normalizeSearchText(`${title} ${session.user.user_metadata?.display_name || ''}`);
+      const searchText = normalizeSearchText(`${title} ${session.user.user_metadata?.display_name || session.user.email || ''}`);
+      const metadataInsert = {
+        uploader_id: session.user.id,
+        title,
+        artist: session.user.user_metadata?.display_name || session.user.email?.split('@')[0] || 'Người dùng SpotiSix',
+        album: 'Thư viện SpotiSix',
+        search_text: searchText,
+        object_path: uploaded?.objectKey || objectPath,
+        mime_type: file.type,
+        size_bytes: file.size,
+        mood: document.getElementById('community-mood')?.value || null,
+        activity: document.getElementById('community-activity')?.value || null,
+      };
+
+      if (!supabaseClient) {
+        const publicUrl = uploaded?.publicUrl || '';
+        addPublishedTrackToPlayer({
+          id: `${title}-${Date.now()}`,
+          title,
+          artist: metadataInsert.artist,
+          album: metadataInsert.album,
+          object_path: metadataInsert.object_path,
+          mood: metadataInsert.mood,
+          activity: metadataInsert.activity,
+          public_url: publicUrl,
+        });
+        continue;
+      }
+
       const { data: track, error: insertError } = await supabaseClient
         .from('published_tracks')
-        .insert({
-            uploader_id: session.user.id,
-            title,
-            artist: session.user.user_metadata?.display_name || session.user.email?.split('@')[0] || 'Người dùng SpotiSix',
-            album: 'Thư viện SpotiSix',
-            search_text: searchText,
-            object_path: objectPath,
-            mime_type: file.type,
-            size_bytes: file.size,
-
-            mood: document.getElementById('community-mood')?.value || null,
-            activity: document.getElementById('community-activity')?.value || null,
-          }
-        )
-
+        .insert(metadataInsert)
         .select('id, title, artist, album, object_path, mood, activity, created_at')
         .single();
       if (insertError) {
-        const { error: cleanupError } = await supabaseClient.storage.from('community-music').remove([objectPath]);
-        if (cleanupError) console.error('Could not remove an audio upload after its metadata insert failed.', cleanupError);
+        if (!usingCloudflare) {
+          const { error: cleanupError } = await supabaseClient.storage.from('community-music').remove([objectPath]);
+          if (cleanupError) console.error('Could not remove an audio upload after its metadata insert failed.', cleanupError);
+        }
         throw new Error(`Không thể thêm ${file.name} vào thư viện trực tuyến: ${insertError.message}`);
       }
       addPublishedTrackToPlayer(track);
@@ -2010,16 +2044,65 @@ async function publishAudioFiles(fileList) {
   }
 }
 
+function getCloudflareConfig() {
+  return window.SPOTISIX_CLOUDFLARE_CONFIG || {};
+}
+
+function resolvePublishedTrackAudioUrl(track) {
+  const cloudflare = getCloudflareConfig();
+  if (cloudflare.enabled && cloudflare.publicUrl && track?.object_path) {
+    const baseUrl = String(cloudflare.publicUrl).replace(/\/+$/, '');
+    const objectKey = String(track.object_path).replace(/^\/+/, '');
+    return `${baseUrl}/${objectKey}`;
+  }
+  if (supabaseClient && track?.object_path) {
+    const { data } = supabaseClient.storage.from('community-music').getPublicUrl(track.object_path);
+    return data?.publicUrl || '';
+  }
+  return '';
+}
+
+async function uploadAudioToRemoteStorage(file, userId, safeName) {
+  const cloudflare = getCloudflareConfig();
+  if (cloudflare.enabled && cloudflare.uploadEndpoint && cloudflare.publicUrl) {
+    const objectKey = `${cloudflare.objectPrefix || 'community-music'}/${userId}/${crypto.randomUUID()}-${safeName}`;
+    const formData = new FormData();
+    formData.append('file', file, safeName);
+    formData.append('objectKey', objectKey);
+
+    const response = await fetch(cloudflare.uploadEndpoint, {
+      method: 'POST',
+      body: formData,
+    });
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok || !payload.publicUrl) {
+      throw new Error(payload.error || 'Không thể tải nhạc lên Cloudflare R2. Kiểm tra worker upload đã được cấu hình đúng.');
+    }
+
+    return {
+      objectKey,
+      publicUrl: payload.publicUrl,
+      storageMode: 'cloudflare',
+    };
+  }
+
+  return {
+    objectKey: '',
+    publicUrl: '',
+    storageMode: 'supabase',
+  };
+}
+
 function addPublishedTrackToPlayer(track) {
   if (publishedTrackIndexes.has(track.id)) return publishedTrackIndexes.get(track.id);
-  const { data } = supabaseClient.storage.from('community-music').getPublicUrl(track.object_path);
   const index = songs.push({
     title: track.title,
     artist: track.artist,
     album: track.album,
     duration: 0,
     img: 'album_lumina.jpg',
-    audioSrc: data.publicUrl,
+    audioSrc: resolvePublishedTrackAudioUrl(track),
     // Mood của bài đăng công khai được lưu trong Supabase ở cột `mood`
     // (một giá trị đơn), còn bộ lọc Mood của trình phát dùng mảng `moods`.
     mood: track.mood || null,
