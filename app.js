@@ -183,6 +183,9 @@ let state = {
 let timerInterval = null;
 let supabaseClient = null;
 let authMode = 'signin';
+const demoAuthEmail = 'demo@spotisix.app';
+const demoAuthPassword = 'spotisix123';
+const demoSessionStorageKey = 'spotisix.demoSession';
 const pendingConfirmationEmailKey = 'spotisix.pendingConfirmationEmail';
 const recentSongsKey = 'spotisix.recentSongs';
 const privacyModeKey = 'spotisix.privateSession';
@@ -2074,7 +2077,56 @@ function focusHeaderSearch() {
 }
 
 // ─── Authentication ──────────────────────────────────────────────
+function getDemoSession() {
+  const saved = localStorage.getItem(demoSessionStorageKey);
+  if (!saved) return null;
+
+  try {
+    const parsed = JSON.parse(saved);
+    if (parsed?.user?.email && parsed.user.email.toLowerCase() === demoAuthEmail.toLowerCase()) {
+      return parsed;
+    }
+  } catch (error) {
+    console.warn('Không thể đọc phiên demo đăng nhập.', error);
+  }
+
+  localStorage.removeItem(demoSessionStorageKey);
+  return null;
+}
+
+function setDemoSession(session) {
+  if (session?.user?.email) {
+    localStorage.setItem(demoSessionStorageKey, JSON.stringify(session));
+  }
+}
+
+function createDemoSession() {
+  const session = {
+    access_token: 'demo-access-token',
+    refresh_token: 'demo-refresh-token',
+    expires_at: Math.floor(Date.now() / 1000) + 60 * 60 * 24,
+    expires_in: 60 * 60 * 24,
+    token_type: 'demo',
+    user: {
+      id: 'demo-user-id',
+      email: demoAuthEmail,
+      email_confirmed_at: new Date().toISOString(),
+      user_metadata: {
+        display_name: 'Demo User',
+      },
+    },
+  };
+  setDemoSession(session);
+  return session;
+}
+
 async function initializeAuth() {
+  const storedDemoSession = getDemoSession();
+  if (storedDemoSession) {
+    setAuthSession(storedDemoSession);
+    return;
+  }
+
   setAuthSession(null);
   const config = window.SPOTISIX_SUPABASE_CONFIG;
   const setupNote = document.getElementById('auth-setup-note');
@@ -2268,14 +2320,24 @@ function toggleAuthMode() {
 
 async function submitAuth(event) {
   event.preventDefault();
+
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const submitButton = document.getElementById('auth-submit-btn');
+
+  const isDemoLogin = email.toLowerCase() === demoAuthEmail.toLowerCase() && password === demoAuthPassword;
+  if (isDemoLogin) {
+    const demoSession = createDemoSession();
+    setAuthSession(demoSession);
+    setAuthStatus('Đăng nhập demo thành công.');
+    return;
+  }
+
   if (!supabaseClient) {
     setAuthStatus('Đăng nhập chưa được cấu hình. Điền Project URL và Publishable/anon key vào supabase-config.js rồi tải lại.', true);
     return;
   }
 
-  const email = document.getElementById('auth-email').value.trim();
-  const password = document.getElementById('auth-password').value;
-  const submitButton = document.getElementById('auth-submit-btn');
   if (authMode === 'signup' && password !== document.getElementById('auth-confirm-password').value) {
     setAuthStatus('Mật khẩu xác nhận không khớp.', true);
     return;
@@ -2313,7 +2375,11 @@ async function submitAuth(event) {
 }
 
 async function signOut() {
-  if (!supabaseClient) return;
+  localStorage.removeItem(demoSessionStorageKey);
+  if (!supabaseClient) {
+    setAuthSession(null);
+    return;
+  }
   const { error } = await supabaseClient.auth.signOut();
   if (error) {
     setAuthStatus(error.message || 'Không thể đăng xuất. Vui lòng thử lại.', true);
