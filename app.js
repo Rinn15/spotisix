@@ -9,22 +9,8 @@
 
 // ─── Data & Mood Definitions ─────────────────────────────────────
 let songs = [
-  { title: 'Quan Sơn Tử', artist: 'Đẳng Thập Yêu Quân', album: 'Lumina', duration: 235, img: 'quan-son-tu.jpg', audioSrc: './music/Quan Sơn Tửu.mp3', mood: 'chill', tags: ['#Chill', '#Ambient'] },
   { title: 'Celestial Vibe', artist: 'The Midnight Drive', album: 'Lumina', duration: 225, img: 'album_lumina.jpg', audioSrc: './music/celestial-vibe.mp3', mood: 'chill', tags: ['#Chill', '#Ambient'] },
-  { title: 'Night Rain & Reverie', artist: 'Lo-Fi Girl', album: 'Study Session', duration: 260, img: 'album_lofi.jpg', audioSrc: './music/night-rain-reverie.mp3', mood: 'chill', tags: ['#Lofi', '#Rain'] },
-  { title: 'Starlight', artist: 'Nova', album: 'Electronic Journey', duration: 312, img: 'album_nova.jpg', audioSrc: './music/starlight.mp3', mood: 'focus', tags: ['#Focus', '#Synth'] },
-  { title: 'Neon Pulse', artist: 'Aurora Borealis', album: 'Synthwave', duration: 295, img: 'album_aurora.jpg', audioSrc: './music/neon-pulse.mp3', mood: 'energy', tags: ['#Energy', '#Synthwave'] },
   { title: 'Blue Note Sessions', artist: 'Miles & Co', album: 'Modern Jazz', duration: 390, img: 'album_jazz.jpg', audioSrc: './music/blue-note-sessions.mp3', mood: 'chill', tags: ['#Jazz', '#LateNight'] },
-  { title: 'Deep Work Flow', artist: 'Alpha Mind', album: 'Binaural Focus', duration: 278, img: 'album_lumina.jpg', audioSrc: '', mood: 'focus', tags: ['#Focus', '#DeepWork'] },
-  { title: 'Sunlight Espresso', artist: 'Café de Paris', album: 'Morning Beats', duration: 210, img: 'album_lofi.jpg', audioSrc: '', mood: 'chill', tags: ['#Acoustic', '#Morning'] },
-  { title: 'Midnight Thunder', artist: 'Echoes of Sorrow', album: 'Rainy Nocturne', duration: 330, img: 'album_jazz.jpg', audioSrc: '', mood: 'sad', tags: ['#Sad', '#Ballad'] },
-  { title: 'Chasing Horizons', artist: 'Vivid Skyline', album: 'Hyper Pop', duration: 204, img: 'album_nova.jpg', audioSrc: '', mood: 'energy', tags: ['#Energy', '#Upbeat'] },
-  { title: 'Sweet Whispers', artist: 'Elena & The Strings', album: 'Velvet Love', duration: 245, img: 'album_lumina.jpg', audioSrc: '', mood: 'romantic', tags: ['#Romance', '#Acoustic'] },
-  { title: 'Heartbeat Sprint', artist: 'Kinetics', album: 'Beast Mode Vol. 1', duration: 285, img: 'album_aurora.jpg', audioSrc: '', mood: 'workout', tags: ['#Workout', '#Bass'] },
-  { title: 'Slumber Lullaby', artist: 'Dream Oasis', album: 'Quiet Hours', duration: 350, img: 'album_lofi.jpg', audioSrc: '', mood: 'sleep', tags: ['#Sleep', '#Ambient'] },
-  { title: 'Tokyo Midnight Disco', artist: 'Shibuya Sound', album: 'Neon Club', duration: 240, img: 'album_nova.jpg', audioSrc: '', mood: 'party', tags: ['#Party', '#Dance'] },
-  { title: 'Lost in Yesterday', artist: 'Autumn Letters', album: 'Melancholia', duration: 298, img: 'album_jazz.jpg', audioSrc: '', mood: 'sad', tags: ['#Sad', '#Piano'] },
-  { title: 'Candlelight Waltz', artist: 'Amour Ensemble', album: 'Romantic Evening', duration: 215, img: 'album_lumina.jpg', audioSrc: '', mood: 'romantic', tags: ['#Romance', '#Strings'] },
   { title: 'Overdrive Ignite', artist: 'Titan Forge', album: 'Iron & Sweat', duration: 265, img: 'album_aurora.jpg', audioSrc: '', mood: 'workout', tags: ['#Workout', '#HighBPM'] },
   { title: 'Cosmic Lullaby', artist: 'Stellar Drifter', album: 'Galaxy Sleep', duration: 380, img: 'album_lumina.jpg', audioSrc: '', mood: 'sleep', tags: ['#Sleep', '#DeepSleep'] },
   { title: 'Electric Carnival', artist: 'Bass Frequency', album: 'Rave Culture', duration: 310, img: 'album_nova.jpg', audioSrc: '', mood: 'party', tags: ['#Party', '#EDM'] }
@@ -413,12 +399,22 @@ function initializeMoodFeatures() {
 
 function getMoodTrackIndices(moodId, filterTag = 'Tất cả') {
   // Chỉ lấy bài hát thực sự có Mood tương ứng.
+  // Hỗ trợ cả bài mẫu dùng `mood`, bài mới dùng `moods`,
+  // và bài đăng công khai từ Supabase.
+  const normalizeMoodId = value => {
+    const id = String(value || '').trim().toLowerCase();
+    // Một số dữ liệu cũ dùng "bad" để chỉ Mood buồn; ID chuẩn trên web là "sad".
+    return id === 'bad' ? 'sad' : id;
+  };
+
+  const targetMood = normalizeMoodId(moodId);
   let indices = songs
     .map((song, index) => ({ song, index }))
-    .filter(({ song }) =>
-      Array.isArray(song.moods) &&
-      song.moods.includes(moodId)
-    );
+    .filter(({ song }) => {
+      const songMoods = Array.isArray(song.moods) ? [...song.moods] : [];
+      if (song.mood) songMoods.push(song.mood);
+      return songMoods.some(mood => normalizeMoodId(mood) === targetMood);
+    });
 
   // Lọc thêm theo thể loại hoặc từ khóa nếu người dùng chọn.
   if (filterTag && filterTag !== 'Tất cả' && filterTag !== 'all') {
@@ -1982,10 +1978,12 @@ async function publishAudioFiles(fileList) {
             mime_type: file.type,
             size_bytes: file.size,
 
-            mood: document.getElementById('community-mood').value || null,
-            activity: document.getElementById('community-activity').value || null,})
+            mood: document.getElementById('community-mood')?.value || null,
+            activity: document.getElementById('community-activity')?.value || null,
+          }
+        )
 
-        .select('id, title, artist, album, object_path, created_at')
+        .select('id, title, artist, album, object_path, mood, activity, created_at')
         .single();
       if (insertError) {
         const { error: cleanupError } = await supabaseClient.storage.from('community-music').remove([objectPath]);
@@ -2019,6 +2017,11 @@ function addPublishedTrackToPlayer(track) {
     duration: 0,
     img: 'album_lumina.jpg',
     audioSrc: data.publicUrl,
+    // Mood của bài đăng công khai được lưu trong Supabase ở cột `mood`
+    // (một giá trị đơn), còn bộ lọc Mood của trình phát dùng mảng `moods`.
+    mood: track.mood || null,
+    moods: track.mood ? [String(track.mood).trim().toLowerCase() === 'bad' ? 'sad' : String(track.mood).trim().toLowerCase()] : [],
+    tags: [],
     publishedTrackId: track.id,
   }) - 1;
   publishedTrackIndexes.set(track.id, index);
@@ -3729,3 +3732,35 @@ async function getPublishedTracksByMoodActivity(
 
 window.getPublishedTracksByMoodActivity =
     getPublishedTracksByMoodActivity;
+// dữ liệu api tìm kiếm nhạc youtube
+async function searchYouTubeMusic(query) {
+  const API_KEY = 'AIzaSyAMtdX5n3nfAVxCO8xoEEQicyNh3cpb9Mw';
+
+  const url = new URL(
+    'https://www.googleapis.com/youtube/v3/search'
+  );
+
+  url.search = new URLSearchParams({
+    part: 'snippet',
+    q: query + ' music',
+    type: 'video',
+    videoEmbeddable: 'true',
+    maxResults: '10',
+    key: API_KEY
+  });
+
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error('Không thể tìm nhạc trên YouTube');
+  }
+
+  const data = await response.json();
+
+  return data.items.map(item => ({
+    title: item.snippet.title,
+    videoId: item.id.videoId,
+    thumbnail: item.snippet.thumbnails.medium.url,
+    source: 'youtube'
+  }));
+}
