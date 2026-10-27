@@ -236,13 +236,7 @@
           </div>
           <div class="playlist-table">
             <div class="playlist-table-head"><span>#</span><span>Tiêu đề</span><span>Album</span><span>Ngày thêm</span><span aria-label="Thời lượng">◷</span></div>
-            <div class="track-list" id="playlist-track-rows">
-              <div class="track-item" onclick="playSong(0)" id="track-0"><span class="track-num">1</span><img src="album_lumina.jpg" alt="" class="track-thumb"/><div class="track-details"><p class="track-name">Celestial Vibe</p><p class="track-artist">The Midnight Drive</p></div><span class="playlist-album">Lumina</span><span class="playlist-date">3 tuần trước</span><span class="track-duration">3:45</span></div>
-              <div class="track-item" onclick="playSong(1)" id="track-1"><span class="track-num">2</span><img src="album_lofi.jpg" alt="" class="track-thumb"/><div class="track-details"><p class="track-name">Night Rain &amp; Reverie</p><p class="track-artist">Lo-Fi Girl</p></div><span class="playlist-album">Study Session</span><span class="playlist-date">3 tuần trước</span><span class="track-duration">4:20</span></div>
-              <div class="track-item" onclick="playSong(2)" id="track-2"><span class="track-num">3</span><img src="album_nova.jpg" alt="" class="track-thumb"/><div class="track-details"><p class="track-name">Starlight</p><p class="track-artist">Nova</p></div><span class="playlist-album">Electronic Journey</span><span class="playlist-date">3 tuần trước</span><span class="track-duration">5:12</span></div>
-              <div class="track-item" onclick="playSong(3)" id="track-3"><span class="track-num">4</span><img src="album_aurora.jpg" alt="" class="track-thumb"/><div class="track-details"><p class="track-name">Neon Pulse</p><p class="track-artist">Aurora Borealis</p></div><span class="playlist-album">Synthwave</span><span class="playlist-date">3 tuần trước</span><span class="track-duration">4:55</span></div>
-              <div class="track-item" onclick="playSong(4)" id="track-4"><span class="track-num">5</span><img src="album_jazz.jpg" alt="" class="track-thumb"/><div class="track-details"><p class="track-name">Blue Note Sessions</p><p class="track-artist">Miles &amp; Co</p></div><span class="playlist-album">Modern Jazz</span><span class="playlist-date">3 tuần trước</span><span class="track-duration">6:30</span></div>
-            </div>
+            <div class="track-list" id="playlist-track-rows"></div>
           </div>
         </section>
 
@@ -294,37 +288,19 @@
         <!-- Trending tracks -->
         <section class="featured-section">
           <div class="section-title-row"><h2>Nghe lại</h2><button class="see-all-btn" onclick="showView('recent')">Hiện tất cả</button></div>
-          <div class="scroll-row">
-            <div class="album-card" onclick="playSong(0)"><div class="album-card-art"><img src="album_lumina.jpg" alt="Lumina"/><div class="album-card-overlay"><button class="play-overlay-btn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button></div></div><p class="album-card-title">Celestial Vibe</p><p class="album-card-sub">The Midnight Drive</p></div>
-            <div class="album-card" onclick="playSong(3)"><div class="album-card-art"><img src="album_aurora.jpg" alt="Aurora"/><div class="album-card-overlay"><button class="play-overlay-btn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button></div></div><p class="album-card-title">Neon Pulse</p><p class="album-card-sub">Aurora Borealis</p></div>
-            <div class="album-card" onclick="playSong(2)"><div class="album-card-art"><img src="album_nova.jpg" alt="Nova"/><div class="album-card-overlay"><button class="play-overlay-btn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button></div></div><p class="album-card-title">Starlight</p><p class="album-card-sub">Nova</p></div>
-            <div class="album-card" onclick="playSong(1)"><div class="album-card-art"><img src="album_lofi.jpg" alt="Lo-Fi"/><div class="album-card-overlay"><button class="play-overlay-btn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button></div></div><p class="album-card-title">Night Rain</p><p class="album-card-sub">Lo-Fi Girl</p></div>
-            <div class="album-card" onclick="playSong(4)"><div class="album-card-art"><img src="album_jazz.jpg" alt="Jazz"/><div class="album-card-overlay"><button class="play-overlay-btn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button></div></div><p class="album-card-title">Blue Note Sessions</p><p class="album-card-sub">Miles &amp; Co</p></div>
-          </div>
+          <div class="scroll-row" id="home-featured-tracks"></div>
         </section>
 
         <!-- Mix Section -->
         <section class="mix-section">
           <div class="section-title-row"><h2>Đài phát đề xuất</h2><button class="see-all-btn" onclick="showView('library');switchLibTab('playlists')">Hiện tất cả</button></div>
-          <div class="scroll-row">
-            <div class="mix-card" onclick="playSong(1)"><div class="mix-art"><img src="album_lofi.jpg" alt="Lo-Fi mix"/><div class="mix-gradient"></div><span class="mix-label">Lo-Fi Mix</span></div><p class="mix-desc">Dựa trên: Night Rain</p></div>
-            <div class="mix-card" onclick="playSong(3)"><div class="mix-art"><img src="album_aurora.jpg" alt="Synthwave mix"/><div class="mix-gradient"></div><span class="mix-label">Synthwave Mix</span></div><p class="mix-desc">Dựa trên: Neon Pulse</p></div>
-            <div class="mix-card" onclick="playSong(4)"><div class="mix-art"><img src="album_jazz.jpg" alt="Jazz mix"/><div class="mix-gradient"></div><span class="mix-label">Jazz Mix</span></div><p class="mix-desc">Dựa trên: Blue Note</p></div>
-            <div class="mix-card" onclick="playSong(2)"><div class="mix-art"><img src="album_nova.jpg" alt="Electronic mix"/><div class="mix-gradient"></div><span class="mix-label">Electronic Mix</span></div><p class="mix-desc">Dựa trên: Starlight</p></div>
-            <div class="mix-card" onclick="playSong(0)"><div class="mix-art"><img src="album_lumina.jpg" alt="Ambient mix"/><div class="mix-gradient"></div><span class="mix-label">Ambient Mix</span></div><p class="mix-desc">Dựa trên: Celestial Vibe</p></div>
-          </div>
+          <div class="scroll-row" id="home-mix-cards"></div>
         </section>
 
         <!-- Track List -->
         <section class="recent-section">
           <div class="section-title-row"><h2>⏱ Nghe gần đây</h2></div>
-          <div class="track-list">
-            <div class="track-item" onclick="playSong(0)" id="track-0"><span class="track-num">1</span><img src="album_lumina.jpg" alt="Lumina" class="track-thumb"/><div class="track-details"><p class="track-name">Celestial Vibe</p><p class="track-artist">The Midnight Drive · Lumina</p></div><div class="track-meta"><button class="track-like" id="like-0" onclick="toggleLike(event,0)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3z"/></svg></button><span class="track-duration">3:45</span></div></div>
-            <div class="track-item" onclick="playSong(1)" id="track-1"><span class="track-num">2</span><img src="album_lofi.jpg" alt="Lo-Fi" class="track-thumb"/><div class="track-details"><p class="track-name">Night Rain &amp; Reverie</p><p class="track-artist">Lo-Fi Girl · Study Session</p></div><div class="track-meta"><button class="track-like" id="like-1" onclick="toggleLike(event,1)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3z"/></svg></button><span class="track-duration">4:20</span></div></div>
-            <div class="track-item" onclick="playSong(2)" id="track-2"><span class="track-num">3</span><img src="album_nova.jpg" alt="Nova" class="track-thumb"/><div class="track-details"><p class="track-name">Starlight</p><p class="track-artist">Nova · Electronic Journey</p></div><div class="track-meta"><button class="track-like" id="like-2" onclick="toggleLike(event,2)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3z"/></svg></button><span class="track-duration">5:12</span></div></div>
-            <div class="track-item" onclick="playSong(3)" id="track-3"><span class="track-num">4</span><img src="album_aurora.jpg" alt="Aurora" class="track-thumb"/><div class="track-details"><p class="track-name">Neon Pulse</p><p class="track-artist">Aurora Borealis · Synthwave</p></div><div class="track-meta"><button class="track-like liked" id="like-3" onclick="toggleLike(event,3)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3z"/></svg></button><span class="track-duration">4:55</span></div></div>
-            <div class="track-item" onclick="playSong(4)" id="track-4"><span class="track-num">5</span><img src="album_jazz.jpg" alt="Jazz" class="track-thumb"/><div class="track-details"><p class="track-name">Blue Note Sessions</p><p class="track-artist">Miles &amp; Co · Modern Jazz</p></div><div class="track-meta"><button class="track-like" id="like-4" onclick="toggleLike(event,4)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3z"/></svg></button><span class="track-duration">6:30</span></div></div>
-          </div>
+          <div class="track-list" id="home-recent-tracks"></div>
         </section>
       </div>
     </div>
@@ -410,29 +386,13 @@
           </div>
         </div>
         <div id="lib-albums" class="lib-section hidden">
-          <div class="lib-grid">
-            <div class="lib-card" onclick="playSong(0)"><img src="album_lumina.jpg" alt="Lumina" class="lib-card-img"/><p class="lib-card-name">Lumina</p><p class="lib-card-sub">The Midnight Drive · 2024</p></div>
-            <div class="lib-card" onclick="playSong(1)"><img src="album_lofi.jpg" alt="Lo-Fi" class="lib-card-img"/><p class="lib-card-name">Night Rain &amp; Reverie</p><p class="lib-card-sub">Lo-Fi Girl · 2024</p></div>
-            <div class="lib-card" onclick="playSong(2)"><img src="album_nova.jpg" alt="Nova" class="lib-card-img"/><p class="lib-card-name">Starlight</p><p class="lib-card-sub">Nova · 2024</p></div>
-            <div class="lib-card" onclick="playSong(3)"><img src="album_aurora.jpg" alt="Aurora" class="lib-card-img"/><p class="lib-card-name">Neon Pulse</p><p class="lib-card-sub">Aurora Borealis · 2024</p></div>
-            <div class="lib-card" onclick="playSong(4)"><img src="album_jazz.jpg" alt="Jazz" class="lib-card-img"/><p class="lib-card-name">Blue Note Sessions</p><p class="lib-card-sub">Miles &amp; Co · 2024</p></div>
-          </div>
+          <div class="lib-grid"></div>
         </div>
         <div id="lib-artists" class="lib-section hidden">
-          <div class="artists-list">
-            <div class="artist-row"><img src="album_lumina.jpg" alt="TMD" class="artist-avatar"/><div class="artist-info"><p class="artist-name">The Midnight Drive</p><p class="artist-meta">Nghệ sĩ · 2.4M người theo dõi</p></div><button class="follow-btn" type="button">Theo dõi</button></div>
-            <div class="artist-row"><img src="album_lofi.jpg" alt="LFG" class="artist-avatar"/><div class="artist-info"><p class="artist-name">Lo-Fi Girl</p><p class="artist-meta">Nghệ sĩ · 8.1M người theo dõi</p></div><button class="follow-btn" type="button">Theo dõi</button></div>
-            <div class="artist-row"><img src="album_nova.jpg" alt="Nova" class="artist-avatar"/><div class="artist-info"><p class="artist-name">Nova</p><p class="artist-meta">Nghệ sĩ · 1.2M người theo dõi</p></div><button class="follow-btn following" type="button">Đang theo dõi</button></div>
-            <div class="artist-row"><img src="album_aurora.jpg" alt="AB" class="artist-avatar"/><div class="artist-info"><p class="artist-name">Aurora Borealis</p><p class="artist-meta">Nghệ sĩ · 3.7M người theo dõi</p></div><button class="follow-btn following" type="button">Đang theo dõi</button></div>
-            <div class="artist-row"><img src="album_jazz.jpg" alt="MC" class="artist-avatar"/><div class="artist-info"><p class="artist-name">Miles &amp; Co</p><p class="artist-meta">Nghệ sĩ · 950K người theo dõi</p></div><button class="follow-btn" type="button">Theo dõi</button></div>
-          </div>
+          <div class="artists-list"></div>
         </div>
         <div id="lib-songs" class="lib-section hidden">
-          <div id="spotify-demo-library" class="track-list">
-            <div class="track-item liked-song" onclick="playSong(3)"><span class="track-num heart-icon">♥</span><img src="album_aurora.jpg" alt="Aurora" class="track-thumb"/><div class="track-details"><p class="track-name">Neon Pulse</p><p class="track-artist">Aurora Borealis</p></div><div class="track-meta"><span class="track-duration">4:55</span></div></div>
-            <div class="track-item" onclick="playSong(0)"><span class="track-num">1</span><img src="album_lumina.jpg" alt="Lumina" class="track-thumb"/><div class="track-details"><p class="track-name">Celestial Vibe</p><p class="track-artist">The Midnight Drive</p></div><div class="track-meta"><span class="track-duration">3:45</span></div></div>
-            <div class="track-item" onclick="playSong(1)"><span class="track-num">2</span><img src="album_lofi.jpg" alt="Lo-Fi" class="track-thumb"/><div class="track-details"><p class="track-name">Night Rain &amp; Reverie</p><p class="track-artist">Lo-Fi Girl</p></div><div class="track-meta"><span class="track-duration">4:20</span></div></div>
-          </div>
+          <div id="spotify-demo-library" class="track-list"></div>
           <div id="spotify-library-results" class="track-list"></div>
         </div>
       </div>
@@ -517,8 +477,8 @@
       <p class="queue-note">Về nội dung đề xuất và tác động của việc quảng bá bài hát</p>
       <h2>Đang phát</h2>
       <button class="queue-current" onclick="togglePlay(event)">
-        <img src="album_lumina.jpg" alt="" class="queue-art"/>
-        <span><strong id="queue-current-title">Celestial Vibe</strong><small id="queue-current-artist">The Midnight Drive</small></span>
+        <img src="quan-son-tu.jpg" alt="" class="queue-art"/>
+        <span><strong id="queue-current-title">Quan Sơn Tửu</strong><small id="queue-current-artist">Đẳng Thập Yêu Quân</small></span>
         <span class="queue-more">•••</span>
       </button>
       <h2 class="queue-next-heading">Tiếp theo</h2>
@@ -533,8 +493,8 @@
   <!-- ══════════════════════ NOW PLAYING BAR ══════════════════════ -->
   <div class="now-playing-bar" id="now-playing-bar" onclick="toggleExpanded()">
     <div class="npb-left">
-      <div class="npb-art-container"><img src="album_lumina.jpg" alt="Now playing" class="npb-art" id="npb-art"/></div>
-      <div class="npb-info"><p class="npb-title" id="npb-title">Celestial Vibe</p><p class="npb-artist" id="npb-artist">The Midnight Drive</p></div>
+      <div class="npb-art-container"><img src="quan-son-tu.jpg" alt="Now playing" class="npb-art" id="npb-art"/></div>
+      <div class="npb-info"><p class="npb-title" id="npb-title">Quan Sơn Tửu</p><p class="npb-artist" id="npb-artist">Đẳng Thập Yêu Quân</p></div>
       <button class="npb-like-btn" id="npb-like-btn" onclick="toggleLikeNPB(event)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3z"/></svg></button>
     </div>
     <div class="npb-center">
@@ -592,12 +552,12 @@
     </div>
     <div class="expanded-art-section">
       <div class="expanded-art-main" id="expanded-art-main">
-        <img src="album_lumina.jpg" alt="Now playing" class="expanded-art-img" id="expanded-art-img"/>
+        <img src="quan-son-tu.jpg" alt="Now playing" class="expanded-art-img" id="expanded-art-img"/>
       </div>
     </div>
     <div class="expanded-info">
       <div class="expanded-title-row">
-        <div><h2 class="expanded-title" id="expanded-title">Celestial Vibe</h2><p class="expanded-artist" id="expanded-artist">The Midnight Drive</p><p class="expanded-album" id="expanded-album">Lumina</p></div>
+        <div><h2 class="expanded-title" id="expanded-title">Quan Sơn Tửu</h2><p class="expanded-artist" id="expanded-artist">Đẳng Thập Yêu Quân</p><p class="expanded-album" id="expanded-album">Nhạc trung</p></div>
         <button class="expanded-like-btn" id="expanded-like-btn" onclick="toggleLikeExpanded()"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3z"/></svg></button>
       </div>
       <div class="expanded-progress-container" role="slider" tabindex="0" aria-label="Tiến độ bài hát" aria-valuemin="0" aria-valuemax="100" onclick="event.stopPropagation()" onpointerdown="startSeek(event)" onpointermove="updateSeek(event)" onpointerup="finishSeek(event)" onpointercancel="finishSeek(event)" onkeydown="handleSeekKeydown(event)">

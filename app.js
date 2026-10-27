@@ -9,11 +9,17 @@
 
 // ─── Data & Mood Definitions ─────────────────────────────────────
 let songs = [
-  { title: 'Celestial Vibe', artist: 'The Midnight Drive', album: 'Lumina', duration: 225, img: 'album_lumina.jpg', audioSrc: './music/celestial-vibe.mp3', mood: 'chill', tags: ['#Chill', '#Ambient'] },
-  { title: 'Blue Note Sessions', artist: 'Miles & Co', album: 'Modern Jazz', duration: 390, img: 'album_jazz.jpg', audioSrc: './music/blue-note-sessions.mp3', mood: 'chill', tags: ['#Jazz', '#LateNight'] },
-  { title: 'Overdrive Ignite', artist: 'Titan Forge', album: 'Iron & Sweat', duration: 265, img: 'album_aurora.jpg', audioSrc: '', mood: 'workout', tags: ['#Workout', '#HighBPM'] },
-  { title: 'Cosmic Lullaby', artist: 'Stellar Drifter', album: 'Galaxy Sleep', duration: 380, img: 'album_lumina.jpg', audioSrc: '', mood: 'sleep', tags: ['#Sleep', '#DeepSleep'] },
-  { title: 'Electric Carnival', artist: 'Bass Frequency', album: 'Rave Culture', duration: 310, img: 'album_nova.jpg', audioSrc: '', mood: 'party', tags: ['#Party', '#EDM'] }
+  {
+    title: 'Quan Sơn Tửu',
+    artist: 'Đẳng Thập Yêu Quân',
+    album: 'Nhạc trung',
+    duration: 260,
+    img: 'quan-son-tu.jpg',
+    audioSrc: './music/Quan Sơn Tửu.mp3',
+    mood: 'chill',
+    moods: ['chill', 'relaxing', 'sleep'],
+    tags: ['#Chill', '#Ambient']
+  }
 ];
 const moodDefinitions = [
   {
@@ -153,10 +159,10 @@ let pinnedPlaylistIds = new Set();
 let removedDefaultPlaylistIds = new Set();
 let currentContextMenuTarget = null;
 const defaultPlaylists = [
-  { id: 'vi', name: 'vi', tracks: [0, 1, 2, 3, 4], cover: 'album_lumina.jpg', custom: false },
-  { id: 'chill', name: 'Chill Mix', tracks: [1, 0, 2], cover: 'album_lofi.jpg', custom: false },
-  { id: 'synth', name: 'Synthwave Drive', tracks: [3, 2, 0], cover: 'album_aurora.jpg', custom: false },
-  { id: 'jazz', name: 'Jazz Sessions', tracks: [4, 0, 1], cover: 'album_jazz.jpg', custom: false },
+  { id: 'vi', name: 'Thư viện SpotiSix', tracks: [0], cover: 'quan-son-tu.jpg', custom: false },
+  { id: 'chill', name: 'Chill Mix', tracks: [0], cover: 'album_lofi.jpg', custom: false },
+  { id: 'synth', name: 'Synthwave Drive', tracks: [0], cover: 'album_aurora.jpg', custom: false },
+  { id: 'jazz', name: 'Jazz Sessions', tracks: [0], cover: 'album_jazz.jpg', custom: false },
 ];
 let userPlaylists = [];
 let activePlaylistId = 'vi';
@@ -174,8 +180,8 @@ let state = {
   previousVolume: 0.7,
   progress: 0,       // 0–1
   elapsed: 0,        // seconds
-  likedSongs: new Set([3]),
-  playbackQueue: [0, 1, 2, 3, 4],
+  likedSongs: new Set(),
+  playbackQueue: [0],
   queuePosition: 0,
   isExpanded: false,
 };
@@ -191,7 +197,7 @@ const recentSongsKey = 'spotisix.recentSongs';
 const privacyModeKey = 'spotisix.privateSession';
 const settingsKey = 'spotisix.settings';
 const followedArtistsStorageKey = 'spotisix.followedArtists';
-const defaultFollowedArtists = ['Nova', 'Aurora Borealis'];
+const defaultFollowedArtists = ['Đẳng Thập Yêu Quân'];
 let followedArtists = new Set(defaultFollowedArtists);
 let spotifyAccessToken = null;
 let spotifyTracks = [];
@@ -373,6 +379,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('playlist-dialog').addEventListener('click', event => {
     if (event.target === event.currentTarget) closePlaylistDialog();
   });
+  renderHomeDynamicSections();
+  renderLibraryAlbumsAndArtists();
   initializeMoodFeatures();
 });
 
@@ -1785,6 +1793,172 @@ function renderLocalLibraryTracks() {
   filterLibraryItems(librarySearchQuery);
 }
 
+function renderHomeDynamicSections() {
+  const featuredContainer = document.getElementById('home-featured-tracks');
+  const mixContainer = document.getElementById('home-mix-cards');
+  const recentContainer = document.getElementById('home-recent-tracks');
+
+  if (featuredContainer) {
+    featuredContainer.replaceChildren();
+    songs.slice(0, 10).forEach((song, idx) => {
+      const card = document.createElement('div');
+      card.className = 'album-card';
+      card.setAttribute('role', 'button');
+      card.setAttribute('tabindex', '0');
+      card.onclick = () => playSong(idx);
+      card.innerHTML = `
+        <div class="album-card-art">
+          <img src="${song.img || 'quan-son-tu.jpg'}" alt="${song.album || song.title}"/>
+          <div class="album-card-overlay">
+            <button class="play-overlay-btn" type="button" aria-label="Phát ${song.title}">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+          </div>
+        </div>
+        <p class="album-card-title">${song.title}</p>
+        <p class="album-card-sub">${song.artist}</p>
+      `;
+      featuredContainer.appendChild(card);
+    });
+  }
+
+  if (mixContainer) {
+    mixContainer.replaceChildren();
+    songs.slice(0, 6).forEach((song, idx) => {
+      const card = document.createElement('div');
+      card.className = 'mix-card';
+      card.setAttribute('role', 'button');
+      card.setAttribute('tabindex', '0');
+      card.onclick = () => playSong(idx);
+      card.innerHTML = `
+        <div class="mix-art">
+          <img src="${song.img || 'quan-son-tu.jpg'}" alt="${song.title}"/>
+          <div class="mix-gradient"></div>
+          <span class="mix-label">${song.artist} Mix</span>
+        </div>
+        <p class="mix-desc">Dựa trên: ${song.title}</p>
+      `;
+      mixContainer.appendChild(card);
+    });
+  }
+
+  if (recentContainer) {
+    recentContainer.replaceChildren();
+    songs.slice(0, 10).forEach((song, idx) => {
+      const row = document.createElement('div');
+      row.className = 'track-item';
+      row.id = `track-home-${idx}`;
+      row.setAttribute('role', 'button');
+      row.setAttribute('tabindex', '0');
+      row.onclick = () => playSong(idx);
+      row.innerHTML = `
+        <span class="track-num">${idx + 1}</span>
+        <img src="${song.img || 'quan-son-tu.jpg'}" alt="" class="track-thumb"/>
+        <div class="track-details">
+          <p class="track-name">${song.title}</p>
+          <p class="track-artist">${song.artist} · ${song.album || 'Đơn'}</p>
+        </div>
+        <div class="track-meta">
+          <button class="track-like${state.likedSongs.has(idx) ? ' liked' : ''}" id="like-home-${idx}" type="button" aria-label="Yêu thích">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3z"/></svg>
+          </button>
+          <span class="track-duration">${song.duration ? formatTime(song.duration) : '--:--'}</span>
+        </div>
+      `;
+      const likeBtn = row.querySelector('.track-like');
+      if (likeBtn) {
+        likeBtn.onclick = (e) => toggleLike(e, idx);
+      }
+      recentContainer.appendChild(row);
+    });
+  }
+}
+
+function renderLibraryAlbumsAndArtists() {
+  const albumsGrid = document.querySelector('#lib-albums .lib-grid');
+  const artistsList = document.querySelector('#lib-artists .artists-list');
+
+  if (albumsGrid) {
+    albumsGrid.replaceChildren();
+    const seenAlbums = new Map();
+    songs.forEach((song, idx) => {
+      const albumName = song.album || 'Khác';
+      if (!seenAlbums.has(albumName)) {
+        seenAlbums.set(albumName, { song, idx });
+      }
+    });
+
+    seenAlbums.forEach(({ song, idx }, albumName) => {
+      const card = document.createElement('div');
+      card.className = 'lib-card';
+      card.setAttribute('role', 'button');
+      card.setAttribute('tabindex', '0');
+      card.onclick = () => playSong(idx);
+      card.innerHTML = `
+        <img src="${song.img || 'quan-son-tu.jpg'}" alt="${albumName}" class="lib-card-img"/>
+        <p class="lib-card-name">${albumName}</p>
+        <p class="lib-card-sub">${song.artist}</p>
+      `;
+      albumsGrid.appendChild(card);
+    });
+  }
+
+  if (artistsList) {
+    artistsList.replaceChildren();
+    const seenArtists = new Map();
+    songs.forEach((song, idx) => {
+      const artistName = song.artist || 'Không rõ';
+      if (!seenArtists.has(artistName)) {
+        seenArtists.set(artistName, { song, idx });
+      }
+    });
+
+    seenArtists.forEach(({ song, idx }, artistName) => {
+      const row = document.createElement('div');
+      row.className = 'artist-row';
+      row.innerHTML = `
+        <img src="${song.img || 'quan-son-tu.jpg'}" alt="${artistName}" class="artist-avatar"/>
+        <div class="artist-info">
+          <p class="artist-name">${artistName}</p>
+          <p class="artist-meta">Nghệ sĩ SpotiSix</p>
+        </div>
+        <button class="follow-btn" type="button">Đã theo dõi</button>
+      `;
+      artistsList.appendChild(row);
+    });
+  }
+}
+
+async function loadCommunityTracksOnStartup() {
+  if (!supabaseClient) return;
+  try {
+    const { data: tracks, error } = await supabaseClient
+      .from('published_tracks')
+      .select('id, title, artist, album, object_path, mood, activity, created_at')
+      .order('created_at', { ascending: false });
+    if (error) {
+      console.warn('Không thể nạp bài hát cộng đồng:', error.message);
+      return;
+    }
+    if (Array.isArray(tracks) && tracks.length > 0) {
+      tracks.forEach(track => {
+        addPublishedTrackToPlayer(track);
+      });
+      state.playbackQueue = songs.map((_, i) => i);
+      defaultPlaylists.forEach(pl => {
+        pl.tracks = songs.map((_, i) => i);
+      });
+      renderActivePlaylist();
+      renderLocalLibraryTracks();
+      renderHomeDynamicSections();
+      renderLibraryAlbumsAndArtists();
+      if (typeof initPlayerMoodUI === 'function') initPlayerMoodUI();
+    }
+  } catch (err) {
+    console.warn('Lỗi khi nạp nhạc từ Supabase:', err);
+  }
+}
+
 function showAppToast(message) {
   const toast = document.getElementById('app-toast');
   toast.textContent = message;
@@ -2050,6 +2224,8 @@ async function publishAudioFiles(fileList) {
       addPublishedTrackToPlayer(track);
     }
     renderLocalLibraryTracks();
+    renderHomeDynamicSections();
+    renderLibraryAlbumsAndArtists();
     const message = canUseSupabase || usingCloudflare
       ? `Đã đăng ${validFiles.length} bài lên thư viện SpotiSix cho mọi người.`
       : `Đã thêm ${validFiles.length} bài vào trình phát (chế độ demo — chỉ bạn thấy trong phiên này). Đăng nhập tài khoản Supabase thật để chia sẻ công khai.`;
@@ -2139,15 +2315,15 @@ async function uploadAudioToRemoteStorage(file, userId, safeName, session = null
 
 function addPublishedTrackToPlayer(track) {
   if (publishedTrackIndexes.has(track.id)) return publishedTrackIndexes.get(track.id);
+  const covers = ['quan-son-tu.jpg', 'album_lofi.jpg', 'album_aurora.jpg', 'album_jazz.jpg', 'album_nova.jpg'];
+  const coverImg = covers[songs.length % covers.length];
   const index = songs.push({
     title: track.title,
     artist: track.artist,
-    album: track.album,
+    album: track.album || 'Thư viện SpotiSix',
     duration: 0,
-    img: 'album_lumina.jpg',
+    img: coverImg,
     audioSrc: track.public_url || resolvePublishedTrackAudioUrl(track),
-    // Mood của bài đăng công khai được lưu trong Supabase ở cột `mood`
-    // (một giá trị đơn), còn bộ lọc Mood của trình phát dùng mảng `moods`.
     mood: track.mood || null,
     moods: track.mood ? [String(track.mood).trim().toLowerCase() === 'bad' ? 'sad' : String(track.mood).trim().toLowerCase()] : [],
     tags: [],
@@ -2333,9 +2509,13 @@ async function initializeAuth() {
         return;
       }
       setAuthSession(session);
-      if (event === 'SIGNED_IN' && session) showEmailConfirmationSuccess(session.user);
+      if (event === 'SIGNED_IN' && session) {
+        showEmailConfirmationSuccess(session.user);
+        void loadCommunityTracksOnStartup();
+      }
     });
     setupNote.classList.add('hidden');
+    void loadCommunityTracksOnStartup();
   } catch (error) {
     setAuthStatus(error.message || 'Không thể khởi tạo đăng nhập. Kiểm tra cấu hình Supabase.', true);
   }

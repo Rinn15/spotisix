@@ -1,15 +1,5 @@
 [
   {
-    "title": "Celestial Vibe",
-    "artist": "The Midnight Drive",
-    "album": "Lumina",
-    "duration": 709,
-    "img": "album_lumina.jpg",
-    "audioSrc": "./music/celestial-vibe.mp3",
-    "moods": ["chill", "relaxing", "sleep"],
-    "tags": ["Ambient", "Calm"]
-  },
-  {
     "title": "Quan Sơn Tửu",
     "artist": "Đẳng Thập Yêu Quân",
     "album": "Nhạc trung",
