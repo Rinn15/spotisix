@@ -2000,7 +2000,17 @@ async function publishAudioFiles(fileList) {
         activity: document.getElementById('community-activity')?.value || null,
       };
 
-      if (!supabaseClient) {
+      const isDemoAuthSession = Boolean(
+        session?.access_token === 'demo-access-token' ||
+        session?.token_type === 'demo' ||
+        session?.user?.email === demoAuthEmail ||
+        session?.user?.id === 'demo-user-id'
+      );
+      const hasRealSupabaseUserId = Boolean(
+        session?.user?.id && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(String(session.user.id))
+      );
+
+      if (!supabaseClient || !hasRealSupabaseUserId || isDemoAuthSession) {
         const publicUrl = uploaded?.publicUrl || '';
         addPublishedTrackToPlayer({
           id: `${title}-${Date.now()}`,
