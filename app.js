@@ -2166,6 +2166,22 @@ function setAuthSession(session) {
 }
 
 function authEmailRedirectUrl() {
+  const config = window.SPOTISIX_SUPABASE_CONFIG || {};
+  const preferredUrl = typeof config.authRedirectUrl === 'string' ? config.authRedirectUrl.trim() : '';
+
+  if (preferredUrl) {
+    try {
+      const redirectUrl = new URL(preferredUrl);
+      if (['http:', 'https:'].includes(redirectUrl.protocol)) {
+        redirectUrl.search = '';
+        redirectUrl.hash = '';
+        return redirectUrl.toString();
+      }
+    } catch (error) {
+      console.warn('Supabase authRedirectUrl không hợp lệ, sẽ dùng URL hiện tại của trang.', error);
+    }
+  }
+
   const redirectUrl = new URL(window.location.href);
   redirectUrl.search = '';
   redirectUrl.hash = '';
