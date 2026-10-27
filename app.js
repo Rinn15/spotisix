@@ -1401,8 +1401,8 @@ function setupAlbumContextMenu() {
     };
   });
 }
-  renderProfileCollections();
-}
+
+renderProfileCollections();
 
 function renderProfileCollections() {
   const stats = document.querySelectorAll('.profile-stats > div strong');
