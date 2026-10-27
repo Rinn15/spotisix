@@ -2235,13 +2235,6 @@ function createDemoSession() {
 }
 
 async function initializeAuth() {
-  const storedDemoSession = getDemoSession();
-  if (storedDemoSession) {
-    setAuthSession(storedDemoSession);
-    return;
-  }
-
-  setAuthSession(null);
   const config = window.SPOTISIX_SUPABASE_CONFIG;
   const setupNote = document.getElementById('auth-setup-note');
   if (!config?.url || !config?.anonKey) {
@@ -2285,11 +2278,28 @@ async function initializeAuth() {
     supabaseClient = window.supabase.createClient(projectUrl.origin, config.anonKey, {
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
     });
+
     const { data, error } = await supabaseClient.auth.getSession();
     if (error) throw error;
-    setAuthSession(data.session);
-    if (data.session) showEmailConfirmationSuccess(data.session.user);
+
+    if (data.session) {
+      localStorage.removeItem(demoSessionStorageKey);
+      setAuthSession(data.session);
+      showEmailConfirmationSuccess(data.session.user);
+      setupNote.classList.add('hidden');
+    } else {
+      const storedDemoSession = getDemoSession();
+      if (storedDemoSession) {
+        setAuthSession(storedDemoSession);
+      } else {
+        setAuthSession(null);
+      }
+    }
+
     supabaseClient.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        localStorage.removeItem(demoSessionStorageKey);
+      }
       setAuthSession(session);
       if (event === 'SIGNED_IN' && session) showEmailConfirmationSuccess(session.user);
     });
@@ -2440,6 +2450,10 @@ async function submitAuth(event) {
   const submitButton = document.getElementById('auth-submit-btn');
 
   const isDemoLogin = email.toLowerCase() === demoAuthEmail.toLowerCase() && password === demoAuthPassword;
+  if (supabaseClient && !isDemoLogin) {
+    localStorage.removeItem(demoSessionStorageKey);
+  }
+
   if (isDemoLogin) {
     const demoSession = createDemoSession();
     setAuthSession(demoSession);
@@ -2470,6 +2484,7 @@ async function submitAuth(event) {
         },
       });
       if (error) throw error;
+      localStorage.removeItem(demoSessionStorageKey);
       if (!data.session) {
         localStorage.setItem(pendingConfirmationEmailKey, email);
         showEmailConfirmation(email);
@@ -2479,6 +2494,7 @@ async function submitAuth(event) {
     } else {
       const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
       if (error) throw error;
+      localStorage.removeItem(demoSessionStorageKey);
       setAuthSession(data.session);
     }
   } catch (error) {
