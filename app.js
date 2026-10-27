@@ -2340,7 +2340,12 @@ function setAuthSession(session) {
   const nearbyName = session?.user?.user_metadata?.display_name || session?.user?.email?.split('@')[0] || '';
   window.setNearbyIdentity?.(nearbyName);
   window.getNearbySupabaseClient = () => supabaseClient;
-  document.getElementById('auth-screen').classList.toggle('hidden', authenticated);
+  const authScreen = document.getElementById('auth-screen');
+  if (!authenticated) {
+    authScreen?.classList.remove('hidden');
+  } else {
+    authScreen?.classList.add('hidden');
+  }
   document.body.classList.toggle('is-authenticated', authenticated);
   document.getElementById('auth-screen').setAttribute('aria-hidden', String(authenticated));
   ['sidebar', 'main-content', 'now-playing-bar', 'expanded-player'].forEach(id => {
@@ -2449,7 +2454,13 @@ function setAuthStatus(message, isError = false) {
   status.classList.toggle('is-error', isError);
 }
 
+function ensureAuthScreenVisible() {
+  const authScreen = document.getElementById('auth-screen');
+  if (authScreen) authScreen.classList.remove('hidden');
+}
+
 function toggleAuthMode() {
+  ensureAuthScreenVisible();
   authMode = authMode === 'signin' ? 'signup' : 'signin';
   const signingUp = authMode === 'signup';
   document.getElementById('auth-title').textContent = signingUp ? 'Tạo tài khoản SpotiSix' : 'Đăng nhập SpotiSix';
