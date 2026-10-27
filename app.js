@@ -681,7 +681,7 @@ function renderMoodRecommendations(moodId, filterTag = activeMoodFilterTag) {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
           <span>Lưu playlist</span>
         </button>
-        <button class="mood-action-btn ghost" type="button" onclick="refreshMoodRecommendations('${mood.id}')" title="Đề xuất các bài hát khác">
+        <button class="mood-action-btn ghost" type="button" onclick="refreshMoodRecommendations('${mood.id}')" title="Đổi đề xuất">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
           <span>Đổi đề xuất</span>
         </button>
@@ -1298,7 +1298,7 @@ function handlePlaylistContextAction(action) {
           a.click();
           a.remove();
         });
-        showAppToast(`Đang tải xuống ${localFiles.length} bài hát từ “${playlist.name}”.`);
+        showAppToast(`Đã tải xuống ${localFiles.length} bài hát từ “${playlist.name}”.`);
       } else {
         showAppToast(`Playlist “${playlist.name}” chưa có tệp âm thanh ngoại tuyến để tải.`);
       }
@@ -1552,7 +1552,7 @@ function renderActivePlaylist() {
     title.textContent = song.title;
     const artist = document.createElement('span');
     artist.className = 'track-artist';
-    artist.textContent = song.artist;
+    artist.textContent = `${song.artist} · ${song.album}`;
     details.append(title, artist);
     const album = document.createElement('span');
     album.className = 'playlist-album';
@@ -1567,7 +1567,7 @@ function renderActivePlaylist() {
     like.type = 'button';
     like.className = `playlist-row-action playlist-row-like${state.likedSongs.has(songIndex) ? ' liked' : ''}`;
     like.setAttribute('aria-label', state.likedSongs.has(songIndex) ? 'Bỏ yêu thích' : 'Thêm vào bài hát yêu thích');
-    like.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3z"/></svg>';
+    like.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3z"/></svg>`;
     like.addEventListener('click', event => toggleLike(event, songIndex));
     const queue = document.createElement('button');
     queue.type = 'button';
@@ -3012,7 +3012,7 @@ function setVolumeFromPointer(event) {
   state.volume = frac;
   state.previousVolume = frac || state.previousVolume;
   state.isMuted = frac === 0;
-  if (audioPlayer) audioPlayer.volume = window.isKaraokeActive?.() || state.isMuted ? 0 : state.volume;
+  if (audioPlayer) audioPlayer.volume = window.isKaraokeActive?.() ? 0 : state.volume;
   updateVolumeUI();
 }
 
@@ -3430,25 +3430,10 @@ function handleSearch(q) {
       artist.className = 'track-artist';
       artist.textContent = `${song.artist} · ${song.album}`;
       details.append(title, artist);
-      const meta = document.createElement('div');
-      meta.className = 'track-meta';
-      const queue = document.createElement('button');
-      queue.type = 'button';
-      queue.className = 'search-queue-btn';
-      queue.setAttribute('aria-label', `Thêm ${song.title} vào danh sách chờ`);
-      queue.textContent = '+';
-      queue.addEventListener('click', event => addToQueue(event, index));
-      const save = document.createElement('button');
-      save.type = 'button';
-      save.className = 'search-save-btn';
-      save.setAttribute('aria-label', `Lưu ${song.title} vào playlist`);
-      save.textContent = '♡';
-      save.addEventListener('click', event => addSongToActivePlaylist(event, index));
       const duration = document.createElement('span');
       duration.className = 'track-duration';
       duration.textContent = formatTime(song.duration);
-      meta.append(queue, save, duration);
-      div.append(number, cover, details, meta);
+      div.append(number, cover, details, duration);
       results.appendChild(div);
     });
   }
@@ -3554,7 +3539,7 @@ async function searchPublishedTracks(query, requestId) {
     if (requestId !== spotifySearchRequestId) return;
     const message = document.createElement('p');
     message.className = 'spotify-empty-state is-error';
-    message.textContent = `Không thể tìm trong thư viện trực tuyến: ${error.message || 'Lỗi kết nối Supabase.'}`;
+    message.textContent = error.message || 'Không thể tìm trong thư viện trực tuyến: ${error.message || 'Lỗi kết nối Supabase.'}`;
     section.appendChild(message);
   }
 }
