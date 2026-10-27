@@ -3598,7 +3598,7 @@ async function searchPublishedTracks(query, requestId) {
     if (requestId !== spotifySearchRequestId) return;
     const message = document.createElement('p');
     message.className = 'spotify-empty-state is-error';
-    message.textContent = error.message || 'Không thể tìm trong thư viện trực tuyến: ${error.message || 'Lỗi kết nối Supabase.'}`;
+    message.textContent = `Không thể tìm trong thư viện trực tuyến: ${error.message || 'Lỗi kết nối Supabase.'}`;
     section.appendChild(message);
   }
 }

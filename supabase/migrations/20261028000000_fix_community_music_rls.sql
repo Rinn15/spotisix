@@ -1,7 +1,7 @@
 -- Sửa lỗi "new row violates row-level security policy" khi đăng nhạc lên bucket community-music.
 -- Storage upload chạy INSERT ... RETURNING trên storage.objects, nên ngoài policy INSERT
 -- còn cần policy SELECT cho chính hàng vừa chèn. Migration trước chỉ có INSERT + DELETE.
--- Chạy file này trong Supabase Dashboard → SQL Editor của project vkfynhlhtaorlkzmlexc.
+-- Chạy file này trong Supabase Dashboard → SQL Editor của project obmjjtbgpbzrsuxtlbcd.
 
 -- Đảm bảo bucket tồn tại và công khai.
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)

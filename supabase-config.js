@@ -1,5 +1,7 @@
 window.SPOTISIX_SUPABASE_CONFIG = {
-  url: 'https://https://obmjjtbgpbzrsuxtlbcd.supabase.co/rest/v1/.supabase.co',
-  anonKey: 'sb_publishable_wFHNeR3NR-uroeKW_93G7g_WY89IgTR',
+  url: 'https://obmjjtbgpbzrsuxtlbcd.supabase.co',
+  // Dán Publishable key của project obmjjtbgpbzrsuxtlbcd
+  // (Supabase Dashboard → Project Settings → API Keys → Publishable key).
+  anonKey: '',
   authRedirectUrl: 'https://rinn15.github.io/spotisix/',
 };
