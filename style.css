@@ -3892,3 +3892,144 @@ body.queue-hidden .queue-panel { display: none; }
     font-size: 12px;
   }
 }
+
+/* ─── Playlist & Album Context Menu & Actions ─────────────────── */
+.playlist-info {
+  flex: 1;
+  min-width: 0;
+}
+.playlist-item {
+  position: relative;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+.playlist-more-btn {
+  opacity: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-left: auto;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.playlist-item:hover .playlist-more-btn,
+.playlist-item:focus-within .playlist-more-btn,
+.playlist-item.menu-active .playlist-more-btn {
+  opacity: 1;
+}
+.playlist-more-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
+}
+.playlist-pinned-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 5px;
+  color: #1ed760;
+  vertical-align: middle;
+}
+.playlist-pinned-badge svg {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Library Grid Card More Button */
+.lib-card {
+  position: relative;
+}
+.lib-card-more-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.18s ease, transform 0.18s ease, background 0.18s ease;
+  z-index: 4;
+}
+.lib-card:hover .lib-card-more-btn,
+.lib-card:focus-within .lib-card-more-btn,
+.lib-card.menu-active .lib-card-more-btn {
+  opacity: 1;
+}
+.lib-card-more-btn:hover {
+  background: rgba(0, 0, 0, 0.9);
+  transform: scale(1.1);
+}
+
+/* Search view upload panel adjustment */
+#view-search .community-music-panel {
+  margin: 0 0 24px 0;
+}
+
+/* Context Menu */
+.spotisix-context-menu {
+  position: fixed;
+  z-index: 99999;
+  min-width: 215px;
+  background: #282828;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.65), 0 4px 12px rgba(0, 0, 0, 0.4);
+  padding: 5px;
+  color: #fff;
+  user-select: none;
+  animation: contextMenuFadeIn 0.12s ease-out;
+}
+@keyframes contextMenuFadeIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+.spotisix-context-menu.hidden {
+  display: none !important;
+}
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 5px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #e5e5e5;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.context-menu-item:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+.context-menu-item.context-menu-danger:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ff6b6b;
+}
+.context-menu-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+.context-menu-separator {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 4px 6px;
+}
+

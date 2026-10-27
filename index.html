@@ -130,7 +130,6 @@
         <span>Thư viện</span>
         <div class="library-actions">
           <button class="add-btn" onclick="openPlaylistDialog()" aria-label="Tạo playlist"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
-          <button class="add-btn" onclick="showView('library')" aria-label="Mở rộng thư viện"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M15 3h6v6h-2V6.41l-4.3 4.3-1.42-1.42 4.3-4.29H15V3zM9 21H3v-6h2v2.59l4.3-4.3 1.42 1.42-4.3 4.29H9V21z"/></svg></button>
         </div>
       </div>
       <div class="library-filters" aria-label="Bộ lọc thư viện">
@@ -197,7 +196,7 @@
       <div class="header-search">
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 15.01 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
         <input type="search" id="search-input" placeholder="Bạn muốn phát nội dung gì?" oninput="handleGlobalSearch(this.value)" aria-label="Tìm kiếm bài hát"/>
-        <button class="header-search-shortcut" type="button" onclick="showDiscover()" aria-label="Khám phá thể loại nhạc và album nổi bật" title="Khám phá thể loại và album nổi bật"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 8h8v8H8z"/></svg></button>
+        <button class="header-search-shortcut" type="button" onclick="showDiscover()" aria-label="Đăng nhạc lên SpotiSix &amp; Khám phá" title="Đăng nhạc lên SpotiSix &amp; Khám phá"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 8h8v8H8z"/></svg></button>
       </div>
       </div>
       <div class="topbar-actions">
@@ -259,38 +258,6 @@
           <div class="hero-greeting">
             <h1 id="greeting-text">Xin chào!</h1>
             <p>Chào mừng trở lại — nhạc của bạn đang chờ.</p>
-          </div>
-          <div class="hero-cards">
-            <div class="hero-card" onclick="playSong(0)"><img src="album_lumina.jpg" alt="Lumina" class="hero-card-img"/><div class="hero-card-info"><span>Celestial Vibe</span></div><button class="hero-play-btn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button></div>
-            <div class="hero-card" onclick="playSong(1)"><img src="album_lofi.jpg" alt="Lo-Fi" class="hero-card-img"/><div class="hero-card-info"><span>Night Rain Study</span></div><button class="hero-play-btn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button></div>
-            <div class="hero-card" onclick="playSong(2)"><img src="album_nova.jpg" alt="Nova" class="hero-card-img"/><div class="hero-card-info"><span>Starlight</span></div><button class="hero-play-btn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button></div>
-            <div class="hero-card" onclick="playSong(3)"><img src="album_aurora.jpg" alt="Aurora" class="hero-card-img"/><div class="hero-card-info"><span>Neon Pulse</span></div><button class="hero-play-btn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button></div>
-            <div class="hero-card" onclick="playSong(4)"><img src="album_jazz.jpg" alt="Jazz" class="hero-card-img"/><div class="hero-card-info"><span>Blue Note</span></div><button class="hero-play-btn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button></div>
-            <div class="hero-card" onclick="playSong(0)"><img src="album_lumina.jpg" alt="Lumina2" class="hero-card-img"/><div class="hero-card-info"><span>Midnight Drive</span></div><button class="hero-play-btn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button></div>
-          </div>
-        </section>
-
-        <!-- Mood Selector & Recommended Songs Section -->
-        <section class="mood-section" id="mood-section" aria-labelledby="mood-section-title">
-          <div class="section-title-row">
-            <div>
-              <span class="mood-section-badge">✨ Chọn tâm trạng</span>
-              <h2 id="mood-section-title">Hôm nay bạn muốn cảm thấy thế nào?</h2>
-              <p class="section-subtitle">Chạm vào một tâm trạng để SpotiSix tạo danh sách đề xuất phù hợp nhất với bạn</p>
-            </div>
-            <div class="mood-scroll-controls">
-              <button class="mood-scroll-btn" type="button" onclick="scrollMoods(-1)" aria-label="Cuộn sang trái">‹</button>
-              <button class="mood-scroll-btn" type="button" onclick="scrollMoods(1)" aria-label="Cuộn sang phải">›</button>
-              <button class="see-all-btn" type="button" onclick="showView('mood')">Khám phá tất cả ›</button>
-            </div>
-          </div>
-          <div class="mood-cards-container" id="home-mood-cards" role="radiogroup" aria-label="Chọn tâm trạng âm nhạc">
-            <!-- Rendered by JS -->
-          </div>
-
-          <!-- Dynamic Mood Recommended Tracklist Container -->
-          <div class="mood-recommendations-panel" id="mood-recommendations-panel">
-            <!-- Rendered dynamically for active mood -->
           </div>
         </section>
 
@@ -365,6 +332,17 @@
     <!-- SEARCH VIEW -->
     <div class="view" id="view-search">
       <div class="content-scroll">
+        <section class="community-music-panel" aria-labelledby="community-music-title">
+          <div>
+            <h2 id="community-music-title">Đăng nhạc lên SpotiSix</h2>
+            <p>Tải nhạc lên thư viện chung để mọi người có thể tìm và nghe. Chỉ đăng tệp bạn có quyền chia sẻ công khai.</p>
+          </div>
+          <div class="community-music-actions">
+            <button id="community-audio-upload-btn" class="community-upload-button" type="button" onclick="document.getElementById('community-audio-input').click()">Đăng nhạc lên SpotiSix</button>
+            <input id="community-audio-input" class="hidden" type="file" accept="audio/*" multiple onchange="publishAudioFiles(this.files);this.value=''"/>
+          </div>
+          <p id="community-upload-status" class="community-upload-status" role="status" aria-live="polite">Đăng nhập SpotiSix trước khi đăng nhạc công khai.</p>
+        </section>
         <div id="search-results-container" class="search-results-container hidden"><h2>Kết quả tìm kiếm</h2><div id="search-results" class="track-list"></div></div>
         <div id="browse-categories">
           <h2>Khám phá thể loại</h2>
@@ -415,17 +393,6 @@
     <div class="view" id="view-library">
       <header class="topbar"><h1 class="topbar-title">Thư viện của tôi</h1></header>
       <div class="content-scroll">
-        <section class="community-music-panel" aria-labelledby="community-music-title">
-          <div>
-            <h2 id="community-music-title">Đăng nhạc lên SpotiSix</h2>
-            <p>Tải nhạc lên thư viện chung để mọi người có thể tìm và nghe. Chỉ đăng tệp bạn có quyền chia sẻ công khai.</p>
-          </div>
-          <div class="community-music-actions">
-            <button id="community-audio-upload-btn" class="community-upload-button" type="button" onclick="document.getElementById('community-audio-input').click()">Đăng nhạc lên SpotiSix</button>
-            <input id="community-audio-input" class="hidden" type="file" accept="audio/*" multiple onchange="publishAudioFiles(this.files);this.value=''"/>
-          </div>
-          <p id="community-upload-status" class="community-upload-status" role="status" aria-live="polite">Đăng nhập SpotiSix trước khi đăng nhạc công khai.</p>
-        </section>
         <div class="library-tabs">
           <button class="lib-tab active" id="lib-tab-playlists" onclick="switchLibTab('playlists')">Playlist</button>
           <button class="lib-tab" id="lib-tab-albums" onclick="switchLibTab('albums')">Album</button>
@@ -673,6 +640,31 @@
     <p class="lyrics-status" id="lyrics-status" role="status" aria-live="polite">Đang tìm lời bài hát…</p>
     <div class="lyrics-lines" id="lyrics-lines" aria-live="off"></div>
   </dialog>
+
+  <!-- Playlist & Album Context Menu -->
+  <div id="playlist-context-menu" class="spotisix-context-menu hidden" role="menu" aria-label="Tùy chọn danh sách phát">
+    <div class="context-menu-item" role="menuitem" data-action="pin">
+      <svg class="context-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-2l-2-2V5a2 2 0 0 0-2-2h-6a2 2 0 0 0-2 2v8l-2 2v2z"></path></svg>
+      <span class="context-menu-label">Ghim album / playlist</span>
+    </div>
+    <div class="context-menu-item" role="menuitem" data-action="queue">
+      <svg class="context-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+      <span class="context-menu-label">Thêm vào hàng chờ</span>
+    </div>
+    <div class="context-menu-item" role="menuitem" data-action="download">
+      <svg class="context-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v10m-4-4 4 4 4-4"/></svg>
+      <span class="context-menu-label">Tải xuống</span>
+    </div>
+    <div class="context-menu-item" role="menuitem" data-action="share">
+      <svg class="context-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="4"/><path d="M2 21v-2a7 7 0 0 1 14 0v2m4-12v8m-4-4h8"/></svg>
+      <span class="context-menu-label">Chia sẻ</span>
+    </div>
+    <div class="context-menu-separator"></div>
+    <div class="context-menu-item context-menu-danger" role="menuitem" data-action="delete">
+      <svg class="context-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+      <span class="context-menu-label">Xóa khỏi thư viện</span>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js" vite-ignore></script>
