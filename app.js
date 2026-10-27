@@ -1567,7 +1567,7 @@ function renderActivePlaylist() {
     like.type = 'button';
     like.className = `playlist-row-action playlist-row-like${state.likedSongs.has(songIndex) ? ' liked' : ''}`;
     like.setAttribute('aria-label', state.likedSongs.has(songIndex) ? 'Bỏ yêu thích' : 'Thêm vào bài hát yêu thích');
-    like.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3z"/></svg>`;
+    like.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3z"/></svg>';
     like.addEventListener('click', event => toggleLike(event, songIndex));
     const queue = document.createElement('button');
     queue.type = 'button';
@@ -2214,6 +2214,21 @@ function setDemoSession(session) {
   }
 }
 
+function clearDemoSession() {
+  localStorage.removeItem(demoSessionStorageKey);
+}
+
+function isDemoSession(session) {
+  return Boolean(
+    session && (
+      session.access_token === 'demo-access-token' ||
+      session.token_type === 'demo' ||
+      session.user?.id === 'demo-user-id' ||
+      session.user?.email === demoAuthEmail
+    )
+  );
+}
+
 function createDemoSession() {
   const session = {
     access_token: 'demo-access-token',
@@ -2283,22 +2298,27 @@ async function initializeAuth() {
     if (error) throw error;
 
     if (data.session) {
-      localStorage.removeItem(demoSessionStorageKey);
+      clearDemoSession();
       setAuthSession(data.session);
       showEmailConfirmationSuccess(data.session.user);
       setupNote.classList.add('hidden');
     } else {
       const storedDemoSession = getDemoSession();
-      if (storedDemoSession) {
-        setAuthSession(storedDemoSession);
-      } else {
-        setAuthSession(null);
+      if (supabaseClient && storedDemoSession && isDemoSession(storedDemoSession)) {
+        setAuthStatus('Phiên demo đang bị bỏ qua. Đăng nhập bằng tài khoản Supabase thật để sử dụng thư viện cộng đồng.');
       }
+      clearDemoSession();
+      setAuthSession(null);
     }
 
     supabaseClient.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
-        localStorage.removeItem(demoSessionStorageKey);
+        clearDemoSession();
+      }
+      if (session && isDemoSession(session)) {
+        clearDemoSession();
+        setAuthSession(null);
+        return;
       }
       setAuthSession(session);
       if (event === 'SIGNED_IN' && session) showEmailConfirmationSuccess(session.user);
@@ -2451,10 +2471,10 @@ async function submitAuth(event) {
 
   const isDemoLogin = email.toLowerCase() === demoAuthEmail.toLowerCase() && password === demoAuthPassword;
   if (supabaseClient && !isDemoLogin) {
-    localStorage.removeItem(demoSessionStorageKey);
+    clearDemoSession();
   }
 
-  if (isDemoLogin) {
+  if (isDemoLogin && !supabaseClient) {
     const demoSession = createDemoSession();
     setAuthSession(demoSession);
     setAuthStatus('Đăng nhập demo thành công.');
@@ -2505,7 +2525,7 @@ async function submitAuth(event) {
 }
 
 async function signOut() {
-  localStorage.removeItem(demoSessionStorageKey);
+  clearDemoSession();
   if (!supabaseClient) {
     setAuthSession(null);
     return;
@@ -3555,7 +3575,7 @@ async function searchPublishedTracks(query, requestId) {
     if (requestId !== spotifySearchRequestId) return;
     const message = document.createElement('p');
     message.className = 'spotify-empty-state is-error';
-    message.textContent = error.message || 'Không thể tìm trong thư viện trực tuyến: ${error.message || 'Lỗi kết nối Supabase.'}`;
+    message.textContent = error.message || `Không thể tìm trong thư viện trực tuyến: ${error.message || 'Lỗi kết nối Supabase.'}`;
     section.appendChild(message);
   }
 }
