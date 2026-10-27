@@ -806,8 +806,8 @@ function renderMoodView() {
       </div>
       <div class="mood-cards-grid">
         ${moodDefinitions.map(mood => {
-          const isSelected = mood.id === activeMoodId;
-          return `
+    const isSelected = mood.id === activeMoodId;
+    return `
             <div class="mood-card ${isSelected ? 'active' : ''}" data-mood-id="${mood.id}" tabindex="0" onclick="setActiveMood('${mood.id}', true)" style="--mood-gradient: ${mood.gradient}; --mood-accent: ${mood.accent}; --mood-glow: ${mood.glow};">
               <div class="mood-card-aura" aria-hidden="true"></div>
               <div class="mood-card-top">
@@ -829,7 +829,7 @@ function renderMoodView() {
               </div>
             </div>
           `;
-        }).join('')}
+  }).join('')}
       </div>
     </section>
 
@@ -904,11 +904,11 @@ function renderMoodView() {
         </div>
         <div class="mood-track-list">
           ${tracks.map((songIdx, position) => {
-            const song = songs[songIdx];
-            if (!song) return '';
-            const isPlayingThis = songIdx === state.currentSong && state.isPlaying;
-            const isLiked = state.likedSongs.has(songIdx);
-            return `
+      const song = songs[songIdx];
+      if (!song) return '';
+      const isPlayingThis = songIdx === state.currentSong && state.isPlaying;
+      const isLiked = state.likedSongs.has(songIdx);
+      return `
               <div class="track-item mood-track-row ${songIdx === state.currentSong ? 'playing' : ''}" data-song-index="${songIdx}" onclick="playSong(${songIdx})">
                 <div class="col-num">
                   <span class="mood-track-num ${isPlayingThis ? 'hidden' : ''}">${position + 1}</span>
@@ -939,7 +939,7 @@ function renderMoodView() {
                 </div>
               </div>
             `;
-          }).join('')}
+    }).join('')}
         </div>
       </div>
     `;
@@ -1960,9 +1960,24 @@ async function publishAudioFiles(fileList) {
     return;
   }
 
+  // Phiên demo không có JWT Supabase thật → mọi request storage sẽ chạy với role `anon`
+  // và bị chặn bởi RLS ("new row violates row-level security policy").
+  const isDemoAuthSession = Boolean(
+    session?.access_token === 'demo-access-token' ||
+    session?.token_type === 'demo' ||
+    session?.user?.email === demoAuthEmail ||
+    session?.user?.id === 'demo-user-id'
+  );
+  const hasRealSupabaseUserId = Boolean(
+    session?.user?.id && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(String(session.user.id))
+  );
+  const canUseSupabase = Boolean(supabaseClient && hasRealSupabaseUserId && !isDemoAuthSession);
+
   const uploadButton = document.getElementById('community-audio-upload-btn');
   if (uploadButton) uploadButton.disabled = true;
-  setUploadStatus(usingCloudflare ? 'Đang tải nhạc lên Cloudflare R2…' : 'Đang tải nhạc lên thư viện công khai…');
+  setUploadStatus(usingCloudflare
+    ? 'Đang tải nhạc lên Cloudflare R2…'
+    : canUseSupabase ? 'Đang tải nhạc lên thư viện công khai…' : 'Đang thêm nhạc vào trình phát (chế độ demo)…');
   try {
     for (const file of validFiles) {
       if (file.size > 52428800) {
@@ -1975,14 +1990,19 @@ async function publishAudioFiles(fileList) {
       let uploaded = null;
       if (usingCloudflare) {
         uploaded = await uploadAudioToRemoteStorage(file, userId, safeName, session);
-      } else {
-        if (!supabaseClient) {
-          throw new Error('Không thể đăng nhạc: Supabase chưa được cấu hình.');
-        }
+      } else if (canUseSupabase) {
         const { error: uploadError } = await supabaseClient.storage
           .from('community-music')
           .upload(objectPath, file, { contentType: file.type, cacheControl: '3600', upsert: false });
-        if (uploadError) throw new Error(`Không thể tải ${file.name} lên: ${uploadError.message}`);
+        if (uploadError) {
+          const isRlsError = /row-level security/i.test(uploadError.message || '');
+          throw new Error(isRlsError
+            ? `Không thể tải ${file.name} lên: Supabase chặn bởi RLS. Hãy chạy migration supabase/migrations/20261012010000_community_music.sql trên project Supabase (SQL Editor) rồi đăng nhập lại.`
+            : `Không thể tải ${file.name} lên: ${uploadError.message}`);
+        }
+      } else {
+        // Chế độ demo / chưa có Supabase: phát trực tiếp từ tệp cục bộ trong phiên này.
+        uploaded = { objectKey: objectPath, publicUrl: URL.createObjectURL(file), storageMode: 'local' };
       }
 
       const title = file.name.replace(/\.[^.]+$/, '').trim() || file.name;
@@ -2000,17 +2020,7 @@ async function publishAudioFiles(fileList) {
         activity: document.getElementById('community-activity')?.value || null,
       };
 
-      const isDemoAuthSession = Boolean(
-        session?.access_token === 'demo-access-token' ||
-        session?.token_type === 'demo' ||
-        session?.user?.email === demoAuthEmail ||
-        session?.user?.id === 'demo-user-id'
-      );
-      const hasRealSupabaseUserId = Boolean(
-        session?.user?.id && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(String(session.user.id))
-      );
-
-      if (!supabaseClient || !hasRealSupabaseUserId || isDemoAuthSession) {
+      if (!canUseSupabase) {
         const publicUrl = uploaded?.publicUrl || '';
         addPublishedTrackToPlayer({
           id: `${title}-${Date.now()}`,
@@ -2040,7 +2050,9 @@ async function publishAudioFiles(fileList) {
       addPublishedTrackToPlayer(track);
     }
     renderLocalLibraryTracks();
-    const message = `Đã đăng ${validFiles.length} bài lên thư viện SpotiSix cho mọi người.`;
+    const message = canUseSupabase || usingCloudflare
+      ? `Đã đăng ${validFiles.length} bài lên thư viện SpotiSix cho mọi người.`
+      : `Đã thêm ${validFiles.length} bài vào trình phát (chế độ demo — chỉ bạn thấy trong phiên này). Đăng nhập tài khoản Supabase thật để chia sẻ công khai.`;
     setUploadStatus(message);
     showAppToast(message);
     const query = document.getElementById('search-input').value.trim();
@@ -2133,7 +2145,7 @@ function addPublishedTrackToPlayer(track) {
     album: track.album,
     duration: 0,
     img: 'album_lumina.jpg',
-    audioSrc: resolvePublishedTrackAudioUrl(track),
+    audioSrc: track.public_url || resolvePublishedTrackAudioUrl(track),
     // Mood của bài đăng công khai được lưu trong Supabase ở cột `mood`
     // (một giá trị đơn), còn bộ lọc Mood của trình phát dùng mảng `moods`.
     mood: track.mood || null,
@@ -2266,9 +2278,9 @@ async function initializeAuth() {
     return;
   }
   if (!['https:', 'http:'].includes(projectUrl.protocol) ||
-      projectUrl.hostname === 'supabase.com' ||
-      projectUrl.hostname === 'www.supabase.com' ||
-      projectUrl.hostname === 'dashboard.supabase.com') {
+    projectUrl.hostname === 'supabase.com' ||
+    projectUrl.hostname === 'www.supabase.com' ||
+    projectUrl.hostname === 'dashboard.supabase.com') {
     setupNote.classList.remove('hidden');
     setAuthStatus('URL hiện tại là trang Supabase, không phải URL của project. Hãy dùng Project URL dạng https://<project-ref>.supabase.co trong Project Settings → API.', true);
     return;
@@ -3121,7 +3133,7 @@ function handleNativeAudioEnded() {
 function handlePlayerShortcuts(event) {
   const target = event.target;
   if (target instanceof HTMLElement &&
-      (target.isContentEditable || target.closest('button, a, input, textarea, select, [role="slider"]'))) return;
+    (target.isContentEditable || target.closest('button, a, input, textarea, select, [role="slider"]'))) return;
   if (event.altKey || event.ctrlKey || event.metaKey) return;
 
   if (event.key === 'Escape' && state.isExpanded) {
@@ -3408,7 +3420,7 @@ function buildQueuePanel() {
 
 // ─── Library Tabs ─────────────────────────────────────────────────
 function switchLibTab(name) {
-  const tabs = ['playlists','albums','artists','songs'];
+  const tabs = ['playlists', 'albums', 'artists', 'songs'];
   tabs.forEach(t => {
     document.getElementById('lib-' + t).classList.toggle('hidden', t !== name);
     document.getElementById('lib-tab-' + t).classList.toggle('active', t === name);
@@ -3500,29 +3512,29 @@ function handleSearch(q) {
 }
 
 async function getSongsByMoodActivity(mood = null, activity = null) {
-    if (!supabaseClient) {
-        console.error("Supabase chưa được kết nối!");
-        return [];
-    }
-    let query = supabaseClient
-        .from("published_tracks")
-        .select("*");
+  if (!supabaseClient) {
+    console.error("Supabase chưa được kết nối!");
+    return [];
+  }
+  let query = supabaseClient
+    .from("published_tracks")
+    .select("*");
 
-    if (mood) {
-        query = query.eq("mood", mood);
-    }
+  if (mood) {
+    query = query.eq("mood", mood);
+  }
 
-    if (activity) {
-        query = query.eq("activity", activity);
-    }
-    const { data, error } = await query
-        .order("created_at", { ascending: false });
+  if (activity) {
+    query = query.eq("activity", activity);
+  }
+  const { data, error } = await query
+    .order("created_at", { ascending: false });
 
-    if (error) {
-        console.error("Lỗi truy vấn bài hát:", error.message);
-        return [];
-    }
-    return data;
+  if (error) {
+    console.error("Lỗi truy vấn bài hát:", error.message);
+    return [];
+  }
+  return data;
 }
 
 async function searchPublishedTracks(query, requestId) {
@@ -3586,7 +3598,7 @@ async function searchPublishedTracks(query, requestId) {
     if (requestId !== spotifySearchRequestId) return;
     const message = document.createElement('p');
     message.className = 'spotify-empty-state is-error';
-    message.textContent = error.message || `Không thể tìm trong thư viện trực tuyến: ${error.message || 'Lỗi kết nối Supabase.'}`;
+    message.textContent = error.message || 'Không thể tìm trong thư viện trực tuyến: ${error.message || 'Lỗi kết nối Supabase.'}`;
     section.appendChild(message);
   }
 }
@@ -3655,7 +3667,7 @@ async function connectSpotify() {
     return;
   }
   if (!['https:', 'http:'].includes(window.location.protocol) ||
-      (window.location.protocol === 'http:' && !['localhost', '127.0.0.1'].includes(window.location.hostname))) {
+    (window.location.protocol === 'http:' && !['localhost', '127.0.0.1'].includes(window.location.hostname))) {
     setSpotifyStatus('Hãy chạy ứng dụng trên localhost hoặc HTTPS để kết nối Spotify.', true);
     return;
   }
@@ -3913,53 +3925,53 @@ function disconnectSpotify() {
 async function updatePublishedTrackMoodActivity(trackId, mood, activity) {
 }
 async function getPublishedTracksByMoodActivity(
-    mood = null,
-    activity = null,
-    limit = 30
+  mood = null,
+  activity = null,
+  limit = 30
 ) {
-    if (!supabaseClient) {
-        throw new Error("Supabase chưa được cấu hình.");
-    }
+  if (!supabaseClient) {
+    throw new Error("Supabase chưa được cấu hình.");
+  }
 
-    const safeLimit = Math.min(
-        100,
-        Math.max(1, Number.parseInt(limit, 10) || 30)
+  const safeLimit = Math.min(
+    100,
+    Math.max(1, Number.parseInt(limit, 10) || 30)
+  );
+
+  let query = supabaseClient
+    .from("published_tracks")
+    .select(
+      "id, title, artist, album, object_path, mood, activity, created_at"
     );
 
-    let query = supabaseClient
-        .from("published_tracks")
-        .select(
-            "id, title, artist, album, object_path, mood, activity, created_at"
-        );
+  const selectedMood =
+    typeof mood === "string" ? mood.trim() : "";
 
-    const selectedMood =
-        typeof mood === "string" ? mood.trim() : "";
+  const selectedActivity =
+    typeof activity === "string" ? activity.trim() : "";
 
-    const selectedActivity =
-        typeof activity === "string" ? activity.trim() : "";
+  if (selectedMood) {
+    query = query.eq("mood", selectedMood);
+  }
 
-    if (selectedMood) {
-        query = query.eq("mood", selectedMood);
-    }
+  if (selectedActivity) {
+    query = query.eq("activity", selectedActivity);
+  }
 
-    if (selectedActivity) {
-        query = query.eq("activity", selectedActivity);
-    }
+  const { data, error } = await query
+    .order("created_at", { ascending: false })
+    .limit(safeLimit);
 
-    const { data, error } = await query
-        .order("created_at", { ascending: false })
-        .limit(safeLimit);
+  if (error) {
+    console.error("Không thể lọc bài hát:", error);
+    throw error;
+  }
 
-    if (error) {
-        console.error("Không thể lọc bài hát:", error);
-        throw error;
-    }
-
-    return data || [];
+  return data || [];
 }
 
 window.getPublishedTracksByMoodActivity =
-    getPublishedTracksByMoodActivity;
+  getPublishedTracksByMoodActivity;
 // dữ liệu api tìm kiếm nhạc youtube
 async function searchYouTubeMusic(query) {
   const API_KEY = 'AIzaSyAMtdX5n3nfAVxCO8xoEEQicyNh3cpb9Mw';
