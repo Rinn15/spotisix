@@ -1974,7 +1974,7 @@ async function publishAudioFiles(fileList) {
 
       let uploaded = null;
       if (usingCloudflare) {
-        uploaded = await uploadAudioToRemoteStorage(file, userId, safeName);
+        uploaded = await uploadAudioToRemoteStorage(file, userId, safeName, session);
       } else {
         if (!supabaseClient) {
           throw new Error('Không thể đăng nhạc: Supabase chưa được cấu hình.');
@@ -2048,6 +2048,16 @@ function getCloudflareConfig() {
   return window.SPOTISIX_CLOUDFLARE_CONFIG || {};
 }
 
+function getCloudflareUploadToken(session = null) {
+  const cloudflare = getCloudflareConfig();
+  const sessionToken = session?.access_token || session?.session?.access_token;
+  if (sessionToken) return String(sessionToken);
+  if (typeof cloudflare.uploadToken === 'string' && cloudflare.uploadToken.trim()) {
+    return cloudflare.uploadToken.trim();
+  }
+  return '';
+}
+
 function resolvePublishedTrackAudioUrl(track) {
   const cloudflare = getCloudflareConfig();
   if (cloudflare.enabled && cloudflare.publicUrl && track?.object_path) {
@@ -2062,7 +2072,7 @@ function resolvePublishedTrackAudioUrl(track) {
   return '';
 }
 
-async function uploadAudioToRemoteStorage(file, userId, safeName) {
+async function uploadAudioToRemoteStorage(file, userId, safeName, session = null) {
   const cloudflare = getCloudflareConfig();
   if (cloudflare.enabled && cloudflare.uploadEndpoint && cloudflare.publicUrl) {
     const objectKey = `${cloudflare.objectPrefix || 'community-music'}/${userId}/${crypto.randomUUID()}-${safeName}`;
@@ -2070,14 +2080,25 @@ async function uploadAudioToRemoteStorage(file, userId, safeName) {
     formData.append('file', file, safeName);
     formData.append('objectKey', objectKey);
 
+    const authToken = getCloudflareUploadToken(session);
+    const headers = {};
+    if (authToken) {
+      headers.Authorization = `Bearer ${authToken}`;
+    }
+
     const response = await fetch(cloudflare.uploadEndpoint, {
       method: 'POST',
+      headers,
       body: formData,
     });
     const payload = await response.json().catch(() => ({}));
 
     if (!response.ok || !payload.publicUrl) {
-      throw new Error(payload.error || 'Không thể tải nhạc lên Cloudflare R2. Kiểm tra worker upload đã được cấu hình đúng.');
+      const message = payload.error || 'Không thể tải nhạc lên Cloudflare R2. Kiểm tra worker upload đã được cấu hình đúng.';
+      if (!authToken && response.status === 401) {
+        throw new Error('Cloudflare worker yêu cầu bearer token. Hãy đăng nhập lại hoặc cấu hình uploadToken trong config.');
+      }
+      throw new Error(message);
     }
 
     return {

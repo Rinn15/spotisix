@@ -5,8 +5,9 @@ window.SPOTISIX_SUPABASE_CONFIG = {
 };
 
 window.SPOTISIX_CLOUDFLARE_CONFIG = {
-  enabled: false,
-  publicUrl: 'https://<bucket-name>.r2.dev',
-  uploadEndpoint: '',
+  enabled: true,
+  publicUrl: 'https://pub-44c33d8bec634fc8a504f1257bab4a6d.r2.dev',
+  uploadEndpoint: 'https://spotisix.lenguyenmanhdat261427.workers.dev/upload',
   objectPrefix: 'community-music',
+  uploadToken: '',
 };
