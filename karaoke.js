@@ -97,6 +97,21 @@ window.syncKaraokeVocalSlider = function(val) {
   if (karaoke) karaoke.vocalGain.gain.value = Number(val) / 100;
 };
 
+window.renderExpLyrics = function renderExpLyrics() {
+  if (lyrics && lyrics.length > 0) {
+    renderLyricsList();
+    renderCurrentLyric();
+  } else {
+    const track = window.getSharedAudioTrack?.();
+    if (track) void loadLyrics(track.title, track.artist, track);
+  }
+};
+
+window.loadLyricsForCurrentSong = function loadLyricsForCurrentSong() {
+  const track = window.getSharedAudioTrack?.();
+  if (track) void loadLyrics(track.title, track.artist, track);
+};
+
 player.addEventListener('play', () => void syncStemPlayback(true));
 player.addEventListener('play', () => window.setTimeout(updateKaraokeAvailability, 0));
 player.addEventListener('pause', () => void syncStemPlayback(false));
@@ -464,7 +479,13 @@ async function loadLyrics(title, artist, trackObj = null) {
   const effectiveTitle = title || track.title || '';
   const effectiveArtist = artist || track.artist || '';
   const key = `${effectiveTitle}|${effectiveArtist}|${track.audioSrc || ''}`;
-  if (lyricLookupKey === key && lyrics.length) return;
+  if (lyricLookupKey === key && lyrics.length) {
+    if (expLyricsLinesContainer && (!expLyricsLinesContainer.children.length || expLyricsLinesContainer.querySelector('.exp-lyrics-loading'))) {
+      renderLyricsList();
+      renderCurrentLyric();
+    }
+    return;
+  }
   lyricLookupKey = key;
   const requestId = ++lyricsRequestId;
   lyrics = [];

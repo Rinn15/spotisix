@@ -1136,9 +1136,13 @@ input:focus-visible {
   flex: 1;
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(360px, 440px);
-  gap: 0 40px;
-  padding: 20px 48px;
+  gap: clamp(24px, 3.5vw, 56px);
+  padding: 16px clamp(24px, 4vw, 64px);
+  width: 100%;
+  max-width: 1540px;
+  margin: 0 auto;
   min-height: 0;
+  align-items: center;
   transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
@@ -1339,19 +1343,31 @@ input:focus-visible {
 }
 .expanded-player.mode-lyrics .expanded-stage,
 .expanded-player.mode-karaoke .expanded-stage {
-  grid-template-columns: minmax(300px, 380px) minmax(0, 1.4fr) minmax(260px, 340px);
-  gap: 0 32px;
+  display: grid;
+  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr) minmax(280px, 340px);
+  gap: clamp(20px, 2.5vw, 44px);
+  max-width: 1540px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 16px clamp(20px, 3vw, 48px);
+  align-items: center;
 }
 .expanded-player.mode-lyrics .expanded-info,
 .expanded-player.mode-karaoke .expanded-info {
   order: 1;
+  max-width: 340px;
+  width: 100%;
 }
 .expanded-player.mode-lyrics .expanded-lyrics-stage,
 .expanded-player.mode-karaoke .expanded-lyrics-stage {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
   min-height: 0;
+  height: 100%;
   order: 2;
+  text-align: center;
 }
 .expanded-player.mode-lyrics .expanded-art-section,
 .expanded-player.mode-karaoke .expanded-art-section {
@@ -1360,30 +1376,52 @@ input:focus-visible {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0 0 16px 0;
+  padding: 0;
+  max-width: 340px;
+  width: 100%;
 }
 .expanded-player.mode-lyrics .expanded-art-main,
 .expanded-player.mode-karaoke .expanded-art-main {
-  width: min(260px, 38vh);
-  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.7), 0 0 40px rgba(30, 215, 96, 0.2);
+  width: min(100%, 340px);
+  max-height: 42vh;
+  aspect-ratio: 1;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 50px rgba(30, 215, 96, 0.2);
 }
 
 /* Lyrics Center Stage UI */
 .expanded-lyrics-stage {
   height: 100%;
-  padding-right: 20px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  text-align: center;
+  padding: 0 10px;
 }
 .exp-lyrics-header-panel {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
   margin-bottom: 12px;
+  width: 100%;
+  max-width: 600px;
+}
+.exp-lyrics-meta-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
 }
 .exp-lyrics-badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 12px;
+  padding: 5px 14px;
   background: rgba(30, 215, 96, 0.16);
   border: 1px solid rgba(30, 215, 96, 0.35);
   border-radius: 9999px;
@@ -1391,7 +1429,7 @@ input:focus-visible {
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
 }
 .badge-dot {
   width: 6px;
@@ -1403,6 +1441,7 @@ input:focus-visible {
 .exp-lyrics-sub {
   color: rgba(255, 255, 255, 0.5);
   font-size: 12px;
+  text-align: center;
 }
 
 /* Karaoke Vocal Controller inside Expanded Stage */
@@ -1410,8 +1449,11 @@ input:focus-visible {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 12px;
-  padding: 10px 14px;
+  padding: 10px 16px;
   backdrop-filter: blur(12px);
+  width: 100%;
+  max-width: 460px;
+  margin: 4px auto 0;
 }
 .exp-karaoke-panel.hidden { display: none; }
 .exp-vocal-row {
@@ -1450,17 +1492,21 @@ input:focus-visible {
   font-size: 11px;
   color: rgba(255, 255, 255, 0.45);
   margin-top: 4px;
+  text-align: center;
 }
 
-/* Lyrics viewport & scrolling lines */
+/* Lyrics viewport & scrolling lines - PERFECT CENTER ALIGNMENT */
 .exp-lyrics-viewport {
   flex: 1;
+  width: 100%;
   min-height: 0;
   overflow-y: auto;
-  padding: 24px 8px;
   scroll-behavior: smooth;
-  mask-image: linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, black 18%, black 82%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 18%, black 82%, transparent 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 .exp-lyrics-viewport::-webkit-scrollbar {
   width: 4px;
@@ -1469,31 +1515,60 @@ input:focus-visible {
   background: rgba(255, 255, 255, 0.2);
   border-radius: 4px;
 }
+.exp-lyrics-lines {
+  width: 100%;
+  max-width: 780px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: clamp(100px, 26vh, 220px) 16px;
+}
+.exp-lyrics-lines .lyrics-line,
+.exp-lyrics-lines .exp-lyric-item,
 .exp-lyrics-line {
-  font-size: clamp(22px, 2.6vw, 32px);
+  font-size: clamp(22px, 2.3vw, 32px);
   font-weight: 700;
-  line-height: 1.5;
-  color: rgba(255, 255, 255, 0.32);
-  margin: 18px 0;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.42);
+  margin: 14px 0;
+  padding: 6px 18px;
+  border-radius: 12px;
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
-  transform-origin: left center;
+  transition: all 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform-origin: center center;
+  text-align: center;
+  width: auto;
+  max-width: 95%;
+  user-select: none;
 }
+.exp-lyrics-lines .lyrics-line:hover,
+.exp-lyrics-lines .exp-lyric-item:hover,
 .exp-lyrics-line:hover {
-  color: rgba(255, 255, 255, 0.8);
-  transform: scale(1.02);
+  color: rgba(255, 255, 255, 0.88);
+  transform: scale(1.03);
+  background: rgba(255, 255, 255, 0.05);
 }
+.exp-lyrics-lines .lyrics-line.active,
+.exp-lyrics-lines .exp-lyric-item.active,
 .exp-lyrics-line.active {
-  color: #ffffff;
-  transform: scale(1.05);
-  text-shadow: 0 0 24px rgba(255, 255, 255, 0.55);
+  font-size: clamp(28px, 2.9vw, 40px);
+  font-weight: 800;
+  color: #1ed760 !important;
+  opacity: 1 !important;
+  transform: scale(1.06);
+  text-shadow: 0 0 30px rgba(30, 215, 96, 0.5), 0 0 10px rgba(30, 215, 96, 0.3);
+  letter-spacing: -0.3px;
 }
 .exp-lyrics-loading,
 .exp-lyrics-empty {
-  font-size: 18px;
-  color: rgba(255, 255, 255, 0.45);
-  padding: 40px 0;
+  font-size: clamp(18px, 2vw, 24px);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  padding: 60px 0;
   text-align: center;
+  margin: auto;
 }
 
 @media (max-width: 900px) {

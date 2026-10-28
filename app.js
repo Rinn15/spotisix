@@ -3592,13 +3592,10 @@ window.setExpandedViewMode = function setExpandedViewMode(mode) {
     karaokePanel.classList.toggle('hidden', mode !== 'karaoke');
   }
 
-  // Pre-load lyrics for current song
+  // Ensure lyrics are rendered for current song
   if (mode === 'lyrics' || mode === 'karaoke') {
-    const curTrack = songs[state.currentSong];
-    if (curTrack) {
-      window.dispatchEvent(new CustomEvent('spotisix:track-change', {
-        detail: { ...curTrack }
-      }));
+    if (window.renderExpLyrics) {
+      window.renderExpLyrics();
     }
   }
 };
