@@ -16,6 +16,7 @@ let songs = [
     duration: 260,
     img: 'quan-son-tu.jpg',
     audioSrc: './music/Quan Sơn Tửu.mp3',
+    lrc: './music/Quan Sơn Tửu.lrc',
     mood: 'chill',
     moods: ['chill', 'relaxing', 'sleep'],
     tags: ['#Chill', '#Ambient']
@@ -240,6 +241,8 @@ async function loadMusicManifest() {
       activity: typeof track.activity === 'string' ? track.activity : null,
       genre: typeof track.genre === 'string' ? track.genre : null,
       tags: Array.isArray(track.tags) ? track.tags : [],
+      lrc: typeof track.lrc === 'string' && track.lrc.trim() ? track.lrc.trim() : '',
+      lyrics: typeof track.lyrics === 'string' && track.lyrics.trim() ? track.lyrics.trim() : '',
     }));
 
     if (validTracks.length === 0) throw new Error('No valid tracks found in tracks.json');
@@ -262,9 +265,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.getSpotiSixCurrentIndex = () => state.currentSong;
   window.getSpotiSixCurrentElapsed = () => audioPlayer?.currentTime || state.elapsed || 0;
   if (window.SpotisixRecommendations) window.SpotisixRecommendations.init();
+  if (Array.isArray(songs) && songs.length > 0) {
+    const randomIdx = Math.floor(Math.random() * songs.length);
+    state.currentSong = randomIdx;
+    state.queuePosition = randomIdx;
+  }
   setGreeting();
   initializePlaylistFeatures();
   audioPlayer = document.getElementById('audio-player');
+  if (audioPlayer && songs[state.currentSong]?.audioSrc) {
+    audioPlayer.src = songs[state.currentSong].audioSrc;
+  }
   window.setKaraokeMuted = muted => {
     audioPlayer.volume = muted || state.isMuted ? 0 : state.volume;
   };
@@ -1036,15 +1047,158 @@ function initializePlaylistFeatures() {
     });
   }
   document.querySelectorAll('.library-filter').forEach((button, index) => {
-    button.addEventListener('click', () => switchLibTab(['playlists', 'albums', 'artists', 'songs'][index] || 'playlists'));
+    button.addEventListener('click', () => {
+      const type = button.id?.replace('lib-filter-', '') || ['playlists', 'songs', 'artists', 'albums'][index] || 'playlists';
+      selectSidebarLibraryFilter(type);
+    });
   });
-  document.querySelector('.library-sort button:first-child').addEventListener('click', () => {
-    switchLibTab('songs');
+  document.querySelector('.library-sort button:first-child')?.addEventListener('click', () => {
+    selectSidebarLibraryFilter('songs');
     toggleLibrarySearch();
   });
   renderPlaylistCollections();
   renderActivePlaylist();
   renderLocalLibraryTracks();
+}
+
+let currentSidebarFilter = 'playlists';
+
+window.selectSidebarLibraryFilter = function selectSidebarLibraryFilter(type) {
+  currentSidebarFilter = type;
+  document.querySelectorAll('.library-filter').forEach(btn => {
+    btn.classList.toggle('active', btn.id === `lib-filter-${type}`);
+  });
+  if (type === 'songs') {
+    renderSidebarSongs();
+  } else if (type === 'playlists') {
+    renderPlaylistCollections();
+  } else if (type === 'artists') {
+    renderSidebarArtists();
+  } else if (type === 'albums') {
+    renderSidebarAlbums();
+  }
+};
+
+function renderSidebarSongs() {
+  const sidebar = document.getElementById('sidebar-playlists');
+  if (!sidebar) return;
+  sidebar.replaceChildren();
+  songs.forEach((song, idx) => {
+    const isCurrent = idx === state.currentSong;
+    const item = document.createElement('div');
+    item.className = `playlist-item sidebar-song-item ${isCurrent ? 'active-playlist' : ''}`;
+    item.setAttribute('role', 'button');
+    item.tabIndex = 0;
+    item.addEventListener('click', () => {
+      playSong(idx);
+      renderSidebarSongs();
+    });
+    item.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        playSong(idx);
+        renderSidebarSongs();
+      }
+    });
+
+    const cover = document.createElement('img');
+    cover.className = 'playlist-thumb';
+    cover.src = song.img || 'quan-son-tu.jpg';
+    cover.alt = '';
+
+    const info = document.createElement('span');
+    info.className = 'playlist-info';
+    const title = document.createElement('span');
+    title.className = 'playlist-name';
+    title.textContent = song.title;
+
+    const subtitle = document.createElement('span');
+    subtitle.className = 'playlist-meta';
+    subtitle.textContent = `Bài hát · ${song.artist}`;
+    info.append(title, subtitle);
+
+    item.append(cover, info);
+    sidebar.appendChild(item);
+  });
+}
+
+function renderSidebarArtists() {
+  const sidebar = document.getElementById('sidebar-playlists');
+  if (!sidebar) return;
+  sidebar.replaceChildren();
+  const seenArtists = new Map();
+  songs.forEach((song, idx) => {
+    const artistName = song.artist || 'Không rõ';
+    if (!seenArtists.has(artistName)) {
+      seenArtists.set(artistName, { song, idx });
+    }
+  });
+
+  seenArtists.forEach(({ song, idx }, artistName) => {
+    const item = document.createElement('div');
+    item.className = 'playlist-item sidebar-artist-item';
+    item.setAttribute('role', 'button');
+    item.tabIndex = 0;
+    item.onclick = () => playSong(idx);
+
+    const avatar = document.createElement('img');
+    avatar.className = 'playlist-thumb artist-avatar';
+    avatar.style.borderRadius = '50%';
+    avatar.src = song.img || 'quan-son-tu.jpg';
+    avatar.alt = '';
+
+    const info = document.createElement('span');
+    info.className = 'playlist-info';
+    const title = document.createElement('span');
+    title.className = 'playlist-name';
+    title.textContent = artistName;
+    const meta = document.createElement('span');
+    meta.className = 'playlist-meta';
+    meta.textContent = 'Nghệ sĩ · SpotiSix';
+
+    info.append(title, meta);
+    item.append(avatar, info);
+    sidebar.appendChild(item);
+  });
+}
+
+function renderSidebarAlbums() {
+  const sidebar = document.getElementById('sidebar-playlists');
+  if (!sidebar) return;
+  sidebar.replaceChildren();
+  const seenAlbums = new Map();
+  songs.forEach((song, idx) => {
+    const albumName = song.album || 'Khác';
+    if (!seenAlbums.has(albumName)) {
+      seenAlbums.set(albumName, { song, idx });
+    }
+  });
+
+  seenAlbums.forEach(({ song, idx }, albumName) => {
+    const item = document.createElement('div');
+    item.className = 'playlist-item sidebar-album-item';
+    item.setAttribute('role', 'button');
+    item.tabIndex = 0;
+    item.onclick = () => playSong(idx);
+
+    const cover = document.createElement('img');
+    cover.className = 'playlist-thumb';
+    cover.src = song.img || 'quan-son-tu.jpg';
+    cover.alt = '';
+
+    const info = document.createElement('span');
+    info.className = 'playlist-info';
+    const title = document.createElement('span');
+    title.className = 'playlist-name';
+    title.textContent = albumName;
+    const meta = document.createElement('span');
+    meta.className = 'playlist-meta';
+    meta.textContent = `Album · ${song.artist}`;
+
+    info.append(title, meta);
+    item.append(cover, info);
+    sidebar.appendChild(item);
+  });
 }
 
 function allPlaylists() {
@@ -1597,7 +1751,7 @@ function renderActivePlaylist() {
     remove.textContent = '−';
     remove.disabled = !playlist.custom;
     remove.addEventListener('click', event => removeSongFromPlaylist(event, songIndex));
-    row.append(number, cover, details, album, date, duration, like, queue, remove);
+    row.append(cover, details, album, date, duration, like, queue, remove);
     document.getElementById('playlist-track-rows').append(row);
   });
   document.getElementById('playlist-main-play').disabled = count === 0;
@@ -1794,7 +1948,7 @@ function renderLocalLibraryTracks() {
     const duration = document.createElement('span');
     duration.className = 'track-duration';
     duration.textContent = formatTime(song.duration);
-    row.append(number, cover, details, duration);
+    row.append(cover, details, duration);
     container.appendChild(row);
   });
   filterLibraryItems(librarySearchQuery);
@@ -3430,6 +3584,66 @@ function saveCurrentTrackToPlaylist(event) {
   closeExpandedTrackOptions();
 }
 
+window.setExpandedViewMode = function setExpandedViewMode(mode) {
+  const player = document.getElementById('expanded-player');
+  if (!player) return;
+  player.classList.remove('mode-art', 'mode-lyrics', 'mode-karaoke');
+  player.classList.add(`mode-${mode}`);
+
+  const tabs = {
+    art: document.getElementById('exp-tab-art'),
+    lyrics: document.getElementById('exp-tab-lyrics'),
+    karaoke: document.getElementById('exp-tab-karaoke')
+  };
+  Object.keys(tabs).forEach(k => {
+    if (tabs[k]) {
+      const active = k === mode;
+      tabs[k].classList.toggle('active', active);
+      tabs[k].setAttribute('aria-selected', String(active));
+    }
+  });
+
+  const lyricsQuickBtn = document.getElementById('exp-lyrics-quick-btn');
+  const karaokeQuickBtn = document.getElementById('exp-karaoke-quick-btn');
+  if (lyricsQuickBtn) lyricsQuickBtn.classList.toggle('active', mode === 'lyrics');
+  if (karaokeQuickBtn) karaokeQuickBtn.classList.toggle('active', mode === 'karaoke');
+
+  const karaokePanel = document.getElementById('exp-karaoke-panel');
+  if (karaokePanel) {
+    karaokePanel.classList.toggle('hidden', mode !== 'karaoke');
+  }
+
+  // Pre-load lyrics for current song
+  if (mode === 'lyrics' || mode === 'karaoke') {
+    const curTrack = songs[state.currentSong];
+    if (curTrack) {
+      window.dispatchEvent(new CustomEvent('spotisix:track-change', {
+        detail: { ...curTrack }
+      }));
+    }
+  }
+};
+
+window.toggleExpandedLyrics = function toggleExpandedLyrics() {
+  const player = document.getElementById('expanded-player');
+  const isLyrics = player && player.classList.contains('mode-lyrics');
+  window.setExpandedViewMode(isLyrics ? 'art' : 'lyrics');
+};
+
+window.toggleExpandedKaraoke = function toggleExpandedKaraoke() {
+  const player = document.getElementById('expanded-player');
+  const isKaraoke = player && player.classList.contains('mode-karaoke');
+  window.setExpandedViewMode(isKaraoke ? 'art' : 'karaoke');
+};
+
+window.handleExpVocalSliderChange = function handleExpVocalSliderChange(val) {
+  const label = document.getElementById('exp-vocal-val');
+  if (label) label.textContent = `${val}%`;
+  if (window.syncKaraokeVocalSlider) {
+    window.syncKaraokeVocalSlider(val);
+  }
+};
+
 // ─── Update UI ────────────────────────────────────────────────────
 function updatePlayerUI() {
   const song = songs[state.currentSong];
@@ -3451,7 +3665,10 @@ function updatePlayerUI() {
   if (audioPlayer && !sharedRemoteAudio && audioPlayer.src !== song.audioSrc) audioPlayer.pause();
   buildQueuePanel();
   // Background blur
-  document.getElementById('expanded-bg').style.backgroundImage = `url('${currentTrack.img}')`;
+  const expBg = document.getElementById('expanded-bg');
+  if (expBg) expBg.style.backgroundImage = `url('${currentTrack.img}')`;
+  const aura = document.getElementById('art-ambient-aura');
+  if (aura) aura.style.backgroundImage = `url('${currentTrack.img}')`;
   syncPlayIcons();
   syncLikeButtons();
   updateProgress();
@@ -3641,6 +3858,52 @@ function normalizeSearchText(value) {
     .toLocaleLowerCase();
 }
 
+function escapeSearchHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function highlightMatch(text, query) {
+  if (!text || !query) return escapeSearchHtml(text || '');
+  const rawQuery = String(query).trim();
+  if (!rawQuery) return escapeSearchHtml(text);
+
+  const normText = normalizeSearchText(text);
+  const normQ = normalizeSearchText(rawQuery);
+
+  const idx = normText.indexOf(normQ);
+  if (idx !== -1 && normQ.length > 0) {
+    const len = normQ.length;
+    const start = Math.min(idx, text.length);
+    const end = Math.min(idx + len, text.length);
+    const before = escapeSearchHtml(text.slice(0, start));
+    const matched = escapeSearchHtml(text.slice(start, end));
+    const after = highlightMatch(text.slice(end), rawQuery);
+    return `${before}<mark class="search-highlight">${matched}</mark>${after}`;
+  }
+
+  const chars = [...new Set(normQ.replace(/\s+/g, '').split(''))];
+  if (chars.length > 0) {
+    let result = '';
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      const normChar = normalizeSearchText(char);
+      if (chars.includes(normChar)) {
+        result += `<mark class="search-highlight">${escapeSearchHtml(char)}</mark>`;
+      } else {
+        result += escapeSearchHtml(char);
+      }
+    }
+    return result;
+  }
+
+  return escapeSearchHtml(text);
+}
+
 function handleSearch(q) {
   const container = document.getElementById('search-results-container');
   const browse = document.getElementById('browse-categories');
@@ -3675,9 +3938,6 @@ function handleSearch(q) {
       const div = document.createElement('div');
       div.className = 'track-item';
       div.addEventListener('click', () => playSong(index));
-      const number = document.createElement('span');
-      number.className = 'track-num';
-      number.textContent = String(index + 1);
       const cover = document.createElement('img');
       cover.src = song.img;
       cover.alt = '';
@@ -3686,20 +3946,20 @@ function handleSearch(q) {
       details.className = 'track-details';
       const title = document.createElement('p');
       title.className = 'track-name';
-      title.textContent = song.title;
+      title.innerHTML = highlightMatch(song.title, q);
       const artist = document.createElement('p');
       artist.className = 'track-artist';
-      artist.textContent = `${song.artist} · ${song.album}`;
+      artist.innerHTML = `${highlightMatch(song.artist, q)} · ${highlightMatch(song.album, q)}`;
       details.append(title, artist);
       const duration = document.createElement('span');
       duration.className = 'track-duration';
       duration.textContent = formatTime(song.duration);
-      div.append(number, cover, details, duration);
+      div.append(cover, details, duration);
       results.appendChild(div);
     });
   }
 
-  searchPublishedTracks(normalizedQuery, requestId);
+  searchPublishedTracks(normalizedQuery, requestId, q);
   if (spotifyAccessToken) {
     spotifySearchTimeout = setTimeout(() => searchSpotify(q, requestId), 350);
     return;
@@ -3739,7 +3999,7 @@ async function getSongsByMoodActivity(mood = null, activity = null) {
   return data;
 }
 
-async function searchPublishedTracks(query, requestId) {
+async function searchPublishedTracks(query, requestId, rawQuery = '') {
   if (!supabaseClient) return;
   const results = document.getElementById('search-results');
   const section = document.createElement('section');
@@ -3774,9 +4034,6 @@ async function searchPublishedTracks(query, requestId) {
       const row = document.createElement('div');
       row.className = 'track-item';
       row.addEventListener('click', () => playSong(index));
-      const number = document.createElement('span');
-      number.className = 'track-num';
-      number.textContent = '♪';
       const cover = document.createElement('img');
       cover.src = song.img;
       cover.alt = '';
@@ -3785,15 +4042,15 @@ async function searchPublishedTracks(query, requestId) {
       details.className = 'track-details';
       const title = document.createElement('p');
       title.className = 'track-name';
-      title.textContent = song.title;
+      title.innerHTML = highlightMatch(song.title, rawQuery || query);
       const artist = document.createElement('p');
       artist.className = 'track-artist';
-      artist.textContent = `${song.artist} · ${song.album}`;
+      artist.innerHTML = `${highlightMatch(song.artist, rawQuery || query)} · ${highlightMatch(song.album, rawQuery || query)}`;
       details.append(title, artist);
       const duration = document.createElement('span');
       duration.className = 'track-duration';
       duration.textContent = formatTime(song.duration);
-      row.append(number, cover, details, duration);
+      row.append(cover, details, duration);
       section.appendChild(row);
     });
   } catch (error) {
@@ -4206,3 +4463,222 @@ async function searchYouTubeMusic(query) {
     source: 'youtube'
   }));
 }
+
+// ═══════════════════════════════════════════════════════════════
+//  SMART PREFERENCE FILTER (BỘ LỌC SỞ THÍCH THÔNG MINH)
+// ═══════════════════════════════════════════════════════════════
+
+const smartPreferences = {
+  moods: new Set(['chill']),
+  activities: new Set(['Học tập']),
+  genres: new Set(['indie', 'acoustic']),
+  tempo: 2, // 1: êm dịu, 2: cân bằng, 3: sôi động
+};
+
+window.openSmartPreferenceControl = function openSmartPreferenceControl() {
+  const modal = document.getElementById('smart-preference-modal');
+  if (!modal) return;
+  if (!modal.open) {
+    if (typeof modal.showModal === 'function') {
+      modal.showModal();
+    } else {
+      modal.setAttribute('open', '');
+    }
+  }
+  syncSmartPreferenceUI();
+  updateSmartMatchBar();
+};
+
+window.closeSmartPreferenceControl = function closeSmartPreferenceControl() {
+  const modal = document.getElementById('smart-preference-modal');
+  if (!modal) return;
+  if (modal.open) {
+    if (typeof modal.close === 'function') {
+      modal.close();
+    } else {
+      modal.removeAttribute('open');
+    }
+  }
+};
+
+window.toggleSmartMood = function toggleSmartMood(btn) {
+  const mood = btn?.dataset?.mood;
+  if (!mood) return;
+  if (smartPreferences.moods.has(mood)) {
+    if (smartPreferences.moods.size > 1) {
+      smartPreferences.moods.delete(mood);
+      btn.classList.remove('active');
+    }
+  } else {
+    smartPreferences.moods.add(mood);
+    btn.classList.add('active');
+  }
+  updateSmartMatchBar();
+};
+
+window.toggleSmartActivity = function toggleSmartActivity(btn) {
+  const act = btn?.dataset?.activity;
+  if (!act) return;
+  if (smartPreferences.activities.has(act)) {
+    if (smartPreferences.activities.size > 1) {
+      smartPreferences.activities.delete(act);
+      btn.classList.remove('active');
+    }
+  } else {
+    smartPreferences.activities.add(act);
+    btn.classList.add('active');
+  }
+  updateSmartMatchBar();
+};
+
+window.toggleSmartGenre = function toggleSmartGenre(btn) {
+  const genre = btn?.dataset?.genre;
+  if (!genre) return;
+  if (smartPreferences.genres.has(genre)) {
+    if (smartPreferences.genres.size > 1) {
+      smartPreferences.genres.delete(genre);
+      btn.classList.remove('active');
+    }
+  } else {
+    smartPreferences.genres.add(genre);
+    btn.classList.add('active');
+  }
+  updateSmartMatchBar();
+};
+
+window.updateSmartTempo = function updateSmartTempo(val) {
+  smartPreferences.tempo = Number(val);
+  const tag = document.getElementById('smart-tempo-tag');
+  if (tag) {
+    if (smartPreferences.tempo === 1) tag.textContent = '🍃 Êm dịu & Sâu lắng';
+    else if (smartPreferences.tempo === 3) tag.textContent = '⚡ Sôi động & Bứt phá';
+    else tag.textContent = '⚖️ Cân bằng vừa phải';
+  }
+  updateSmartMatchBar();
+};
+
+function syncSmartPreferenceUI() {
+  document.querySelectorAll('#smart-mood-grid .smart-mood-card').forEach(card => {
+    card.classList.toggle('active', smartPreferences.moods.has(card.dataset.mood));
+  });
+  document.querySelectorAll('#smart-activity-chips .smart-chip-pill').forEach(pill => {
+    pill.classList.toggle('active', smartPreferences.activities.has(pill.dataset.activity));
+  });
+  document.querySelectorAll('#smart-genre-chips .smart-genre-pill').forEach(pill => {
+    pill.classList.toggle('active', smartPreferences.genres.has(pill.dataset.genre));
+  });
+  const tempoRange = document.getElementById('smart-tempo-range');
+  if (tempoRange) tempoRange.value = smartPreferences.tempo;
+  window.updateSmartTempo(smartPreferences.tempo);
+}
+
+function computeSmartMatchingTracks() {
+  if (!Array.isArray(songs) || songs.length === 0) return [];
+  const scores = songs.map((song, index) => {
+    let score = 0;
+    const songMoods = Array.isArray(song.moods) ? song.moods : (song.mood ? [song.mood] : []);
+    const songTags = Array.isArray(song.tags) ? song.tags.map(t => String(t).toLowerCase()) : [];
+    const text = `${song.title} ${song.artist} ${song.album} ${songTags.join(' ')}`.toLowerCase();
+
+    // 1. Mood match (40 pts)
+    songMoods.forEach(m => {
+      if (smartPreferences.moods.has(m)) score += 40;
+    });
+
+    // 2. Genre match (30 pts)
+    smartPreferences.genres.forEach(g => {
+      if (text.includes(g) || songTags.some(t => t.includes(g))) score += 30;
+    });
+
+    // 3. Activity match (25 pts)
+    smartPreferences.activities.forEach(act => {
+      if (act === 'Học tập' && (songMoods.includes('chill') || songMoods.includes('focus'))) score += 25;
+      if (act === 'Thể thao' && (songMoods.includes('energy') || songMoods.includes('workout'))) score += 25;
+      if (act === 'Cà phê' && (songMoods.includes('chill') || songMoods.includes('romantic'))) score += 25;
+      if (act === 'Lái xe' && (songMoods.includes('energy') || songMoods.includes('focus'))) score += 25;
+      if (act === 'Thư giãn' && (songMoods.includes('chill') || songMoods.includes('sad'))) score += 25;
+      if (act === 'Ngủ' && (songMoods.includes('sleep') || songMoods.includes('chill'))) score += 25;
+      if (act === 'Gaming' && (songMoods.includes('energy') || songMoods.includes('focus'))) score += 25;
+    });
+
+    // 4. Tempo match (15 pts)
+    if (smartPreferences.tempo === 1 && (songMoods.includes('chill') || songMoods.includes('sleep'))) score += 15;
+    if (smartPreferences.tempo === 2 && (songMoods.includes('chill') || songMoods.includes('romantic') || songMoods.includes('focus'))) score += 15;
+    if (smartPreferences.tempo === 3 && (songMoods.includes('energy') || songMoods.includes('workout') || songMoods.includes('party'))) score += 15;
+
+    return { index, song, score };
+  });
+
+  scores.sort((a, b) => b.score - a.score);
+  return scores;
+}
+
+function updateSmartMatchBar() {
+  const scored = computeSmartMatchingTracks();
+  const countEl = document.getElementById('smart-match-count');
+  const pctEl = document.getElementById('smart-match-pct');
+  const previewEl = document.getElementById('smart-match-preview');
+  if (!countEl || !previewEl) return;
+
+  const matched = scored.filter(s => s.score > 0);
+  const displayList = matched.length > 0 ? matched : scored;
+  const matchCount = displayList.length;
+
+  countEl.textContent = `Tìm thấy ${matchCount} bài hát phù hợp`;
+  const topScore = displayList[0]?.score || 50;
+  const pct = Math.min(99, Math.max(85, 84 + Math.round(topScore / 8)));
+  if (pctEl) pctEl.textContent = `${pct}%`;
+
+  previewEl.replaceChildren();
+  displayList.slice(0, 4).forEach(({ song }) => {
+    const pill = document.createElement('span');
+    pill.className = 'smart-match-mini-pill';
+    pill.innerHTML = `🎵 <strong>${escapeSearchHtml(song.title)}</strong> · ${escapeSearchHtml(song.artist)}`;
+    previewEl.appendChild(pill);
+  });
+}
+
+window.applyAndPlaySmartMix = function applyAndPlaySmartMix() {
+  const scored = computeSmartMatchingTracks();
+  const matched = scored.filter(s => s.score > 0);
+  const targetIndices = (matched.length > 0 ? matched : scored).map(s => s.index);
+
+  if (targetIndices.length > 0) {
+    state.playbackQueue = targetIndices;
+    state.queuePosition = 0;
+    playSong(targetIndices[0]);
+    window.closeSmartPreferenceControl();
+    showAppToast(`✨ Đang phát danh sách phối thông minh (${targetIndices.length} bài hát) phù hợp sở thích của bạn!`);
+  }
+};
+
+window.saveSmartPreferenceToPlaylist = function saveSmartPreferenceToPlaylist() {
+  const scored = computeSmartMatchingTracks();
+  const matched = scored.filter(s => s.score > 0);
+  const targetTracks = (matched.length > 0 ? matched : scored).map(s => s.index);
+
+  const moodName = [...smartPreferences.moods][0] || 'Mix';
+  const actName = [...smartPreferences.activities][0] || 'Âm nhạc';
+  const newPl = {
+    id: `smart-pref-${Date.now()}`,
+    name: `Sở thích: ${moodName} & ${actName}`,
+    tracks: targetTracks,
+    cover: songs[targetTracks[0]]?.img || 'album_lofi.jpg',
+    custom: true
+  };
+  userPlaylists.push(newPl);
+  persistUserPlaylists();
+  renderPlaylistCollections();
+  showAppToast(`✨ Đã lưu danh sách "${newPl.name}" vào Thư viện của bạn!`);
+  window.closeSmartPreferenceControl();
+};
+
+window.resetSmartPreferences = function resetSmartPreferences() {
+  smartPreferences.moods = new Set(['chill']);
+  smartPreferences.activities = new Set(['Học tập']);
+  smartPreferences.genres = new Set(['indie', 'acoustic']);
+  smartPreferences.tempo = 2;
+  syncSmartPreferenceUI();
+  updateSmartMatchBar();
+  showAppToast('Đã đặt lại bộ lọc sở thích về mặc định.');
+};

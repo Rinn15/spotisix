@@ -133,10 +133,10 @@
         </div>
       </div>
       <div class="library-filters" aria-label="Bộ lọc thư viện">
-        <button class="library-filter active" onclick="showView('library')">Playlist</button>
-        <button class="library-filter" onclick="showView('library');switchLibTab('albums')">Album</button>
-        <button class="library-filter" onclick="showView('library');switchLibTab('artists')">Nghệ sĩ</button>
-        <button class="library-filter library-filter-more" onclick="showView('library');switchLibTab('songs')" aria-label="Hiển thị bài hát">›</button>
+        <button class="library-filter active" id="lib-filter-playlists" onclick="selectSidebarLibraryFilter('playlists')">Playlist</button>
+        <button class="library-filter" id="lib-filter-songs" onclick="selectSidebarLibraryFilter('songs')">Bài hát</button>
+        <button class="library-filter" id="lib-filter-albums" onclick="selectSidebarLibraryFilter('albums')">Album</button>
+        <button class="library-filter" id="lib-filter-artists" onclick="selectSidebarLibraryFilter('artists')">Nghệ sĩ</button>
       </div>
       <div class="library-sort">
         <button aria-label="Tìm trong thư viện" onclick="showView('library')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></button>
@@ -245,6 +245,7 @@
           <div class="home-filter-chips" aria-label="Bộ lọc trang chủ">
             <button class="home-filter-chip active" type="button">Tất cả</button>
             <button class="home-filter-chip" id="chip-mood" type="button" onclick="selectMoodFilter()">Tâm trạng</button>
+            <button class="home-filter-chip smart-filter-chip" id="chip-smart-pref" type="button" onclick="openSmartPreferenceControl()"><span class="chip-sparkle">✨</span> Sở thích thông minh</button>
             <button class="home-filter-chip" type="button" onclick="showView('library');switchLibTab('songs')">Nhạc</button>
             <button class="home-filter-chip" type="button" onclick="showView('library');switchLibTab('albums')">Album</button>
             <button class="home-filter-chip" type="button" onclick="showView('library');switchLibTab('playlists')">Playlist</button>
@@ -535,7 +536,8 @@
   <audio id="audio-player" preload="metadata" crossorigin="anonymous"></audio>
 
   <!-- ══════════════════════ NOW PLAYING DETAIL ══════════════════════ -->
-  <div class="expanded-player" id="expanded-player" aria-hidden="true" role="dialog" aria-label="Trình phát nhạc">
+  <!-- ══════════════════════ NOW PLAYING DETAIL ══════════════════════ -->
+  <div class="expanded-player mode-art" id="expanded-player" aria-hidden="true" role="dialog" aria-label="Trình phát nhạc">
     <div class="expanded-bg" id="expanded-bg"></div>
     <div class="expanded-blur"></div>
     <div class="expanded-header">
@@ -543,6 +545,23 @@
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>
         <span>Đang phát</span>
       </button>
+
+      <!-- Mode switcher: Bìa nhạc / Lời bài hát / Hát karaoke -->
+      <div class="expanded-mode-switch" id="expanded-mode-switch" role="tablist" aria-label="Chế độ hiển thị">
+        <button type="button" class="exp-mode-tab active" id="exp-tab-art" role="tab" aria-selected="true" onclick="setExpandedViewMode('art')">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+          <span>Bìa nhạc</span>
+        </button>
+        <button type="button" class="exp-mode-tab" id="exp-tab-lyrics" role="tab" aria-selected="false" onclick="setExpandedViewMode('lyrics')">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          <span>Lời bài hát</span>
+        </button>
+        <button type="button" class="exp-mode-tab" id="exp-tab-karaoke" role="tab" aria-selected="false" onclick="setExpandedViewMode('karaoke')">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+          <span>Hát karaoke</span>
+        </button>
+      </div>
+
       <button class="expanded-options-btn" id="expanded-options-btn" type="button" aria-label="Tùy chọn bài hát" aria-haspopup="menu" aria-expanded="false" onclick="toggleExpandedTrackOptions(event)">•••</button>
       <div class="expanded-track-menu hidden" id="expanded-track-menu" role="menu" aria-label="Tùy chọn bài hát đang phát">
         <button type="button" role="menuitem" onclick="addCurrentTrackToQueue(event)">Thêm vào danh sách chờ</button>
@@ -550,36 +569,76 @@
         <button type="button" role="menuitem" onclick="saveCurrentTrackToPlaylist(event)">Lưu vào playlist đang mở</button>
       </div>
     </div>
-    <div class="expanded-art-section">
-      <div class="expanded-art-main" id="expanded-art-main">
-        <img src="quan-son-tu.jpg" alt="Now playing" class="expanded-art-img" id="expanded-art-img"/>
+
+    <!-- Main Stage Container -->
+    <div class="expanded-stage" id="expanded-stage">
+      <!-- Synced Lyrics & Karaoke Center Stage -->
+      <div class="expanded-lyrics-stage" id="expanded-lyrics-stage">
+        <div class="exp-lyrics-header-panel">
+          <div class="exp-lyrics-meta-info">
+            <span class="exp-lyrics-badge" id="exp-lyrics-badge"><span class="badge-dot"></span> Lời bài hát đồng bộ</span>
+            <p class="exp-lyrics-sub" id="exp-lyrics-sub">Nhấn vào câu bất kỳ để phát đoạn đó</p>
+          </div>
+          <!-- Karaoke Vocal Adjuster Panel -->
+          <div class="exp-karaoke-panel hidden" id="exp-karaoke-panel">
+            <div class="exp-vocal-row">
+              <span class="exp-vocal-label"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22" stroke="currentColor" stroke-width="2"/></svg> Giọng ca sĩ:</span>
+              <div class="exp-vocal-slider-wrap">
+                <input type="range" min="0" max="100" value="100" step="1" id="exp-vocal-slider" class="exp-vocal-slider" oninput="handleExpVocalSliderChange(this.value)">
+                <span class="exp-vocal-val" id="exp-vocal-val">100%</span>
+              </div>
+            </div>
+            <span class="exp-karaoke-hint">Kéo về 0% để tắt hoàn toàn giọng hát và hát trên beat</span>
+          </div>
+        </div>
+        <div class="exp-lyrics-viewport" id="exp-lyrics-viewport">
+          <div class="exp-lyrics-lines" id="exp-lyrics-lines">
+            <p class="exp-lyrics-loading">Đang tải lời bài hát…</p>
+          </div>
+        </div>
       </div>
-    </div>
-    <div class="expanded-info">
-      <div class="expanded-title-row">
-        <div><h2 class="expanded-title" id="expanded-title">Quan Sơn Tửu</h2><p class="expanded-artist" id="expanded-artist">Đẳng Thập Yêu Quân</p><p class="expanded-album" id="expanded-album">Nhạc trung</p></div>
-        <button class="expanded-like-btn" id="expanded-like-btn" onclick="toggleLikeExpanded()"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3z"/></svg></button>
+
+      <!-- Artwork Section (Shifts/shrinks to the right when lyrics/karaoke is on) -->
+      <div class="expanded-art-section" id="expanded-art-section">
+        <div class="expanded-art-main" id="expanded-art-main">
+          <img src="quan-son-tu.jpg" alt="Now playing" class="expanded-art-img" id="expanded-art-img"/>
+          <div class="art-ambient-aura" id="art-ambient-aura"></div>
+        </div>
       </div>
-      <div class="expanded-progress-container" role="slider" tabindex="0" aria-label="Tiến độ bài hát" aria-valuemin="0" aria-valuemax="100" onclick="event.stopPropagation()" onpointerdown="startSeek(event)" onpointermove="updateSeek(event)" onpointerup="finishSeek(event)" onpointercancel="finishSeek(event)" onkeydown="handleSeekKeydown(event)">
-        <div class="expanded-progress-bar"><div class="expanded-progress-fill" id="expanded-fill"></div><div class="expanded-progress-thumb" id="expanded-thumb"></div></div>
-        <div class="expanded-times"><span id="exp-current-time">0:00</span><span id="exp-total-time">3:45</span></div>
+
+      <!-- Controls & Details Section -->
+      <div class="expanded-info" id="expanded-info">
+        <div class="expanded-title-row">
+          <div><h2 class="expanded-title" id="expanded-title">Quan Sơn Tửu</h2><p class="expanded-artist" id="expanded-artist">Đẳng Thập Yêu Quân</p><p class="expanded-album" id="expanded-album">Nhạc trung</p></div>
+          <button class="expanded-like-btn" id="expanded-like-btn" onclick="toggleLikeExpanded()"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3z"/></svg></button>
+        </div>
+        <div class="expanded-progress-container" role="slider" tabindex="0" aria-label="Tiến độ bài hát" aria-valuemin="0" aria-valuemax="100" onclick="event.stopPropagation()" onpointerdown="startSeek(event)" onpointermove="updateSeek(event)" onpointerup="finishSeek(event)" onpointercancel="finishSeek(event)" onkeydown="handleSeekKeydown(event)">
+          <div class="expanded-progress-bar"><div class="expanded-progress-fill" id="expanded-fill"></div><div class="expanded-progress-thumb" id="expanded-thumb"></div></div>
+          <div class="expanded-times"><span id="exp-current-time">0:00</span><span id="exp-total-time">3:45</span></div>
+        </div>
+        <div class="expanded-controls">
+          <button class="exp-ctrl-btn" id="exp-shuffle-btn" onclick="toggleShuffle(event)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg></button>
+          <button class="exp-ctrl-btn exp-prev" onclick="prevSong(event)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
+          <button class="exp-play-btn" id="exp-play-btn" onclick="togglePlay(event)">
+            <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            <svg class="icon-pause hidden" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          </button>
+          <button class="exp-ctrl-btn exp-next" onclick="nextSong(event)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
+          <button class="exp-ctrl-btn" id="exp-repeat-btn" aria-label="Bật lặp lại" title="Bật lặp lại" onclick="toggleRepeat(event)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg></button>
+          <button class="exp-ctrl-btn exp-mode-quick-btn" id="exp-lyrics-quick-btn" onclick="toggleExpandedLyrics()" title="Xem lời bài hát">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          </button>
+          <button class="exp-ctrl-btn exp-mode-quick-btn" id="exp-karaoke-quick-btn" onclick="toggleExpandedKaraoke()" title="Chế độ Karaoke">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+          </button>
+        </div>
+        <div class="expanded-volume">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="18"><path d="M3 9v6h4l5 5V4L7 9H3z"/></svg>
+          <div class="exp-volume-bar" id="exp-vol-bar" data-volume-slider role="slider" tabindex="0" aria-label="Âm lượng" aria-valuemin="0" aria-valuemax="100" aria-valuenow="70" onclick="event.stopPropagation()" onpointerdown="startVolumeChange(event)" onpointermove="updateVolumeChange(event)" onpointerup="finishVolumeChange(event)" onpointercancel="finishVolumeChange(event)" onkeydown="handleVolumeKeydown(event)"><div class="exp-volume-fill" id="exp-volume-fill" style="width:70%"></div></div>
+          <svg viewBox="0 0 24 24" fill="currentColor" width="18"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+        </div>
+        <div class="up-next-section"><h3>Tiếp theo</h3><div class="up-next-list" id="up-next-list"></div></div>
       </div>
-      <div class="expanded-controls">
-        <button class="exp-ctrl-btn" id="exp-shuffle-btn" onclick="toggleShuffle(event)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg></button>
-        <button class="exp-ctrl-btn exp-prev" onclick="prevSong(event)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
-        <button class="exp-play-btn" id="exp-play-btn" onclick="togglePlay(event)">
-          <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-          <svg class="icon-pause hidden" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-        </button>
-        <button class="exp-ctrl-btn exp-next" onclick="nextSong(event)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
-        <button class="exp-ctrl-btn" id="exp-repeat-btn" aria-label="Bật lặp lại" title="Bật lặp lại" onclick="toggleRepeat(event)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg></button>
-      </div>
-      <div class="expanded-volume">
-        <svg viewBox="0 0 24 24" fill="currentColor" width="18"><path d="M3 9v6h4l5 5V4L7 9H3z"/></svg>
-        <div class="exp-volume-bar" id="exp-vol-bar" data-volume-slider role="slider" tabindex="0" aria-label="Âm lượng" aria-valuemin="0" aria-valuemax="100" aria-valuenow="70" onclick="event.stopPropagation()" onpointerdown="startVolumeChange(event)" onpointermove="updateVolumeChange(event)" onpointerup="finishVolumeChange(event)" onpointercancel="finishVolumeChange(event)" onkeydown="handleVolumeKeydown(event)"><div class="exp-volume-fill" id="exp-volume-fill" style="width:70%"></div></div>
-        <svg viewBox="0 0 24 24" fill="currentColor" width="18"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
-      </div>
-      <div class="up-next-section"><h3>Tiếp theo</h3><div class="up-next-list" id="up-next-list"></div></div>
     </div>
   </div>
   <dialog class="karaoke-dialog" id="karaoke-dialog" aria-labelledby="karaoke-title">
@@ -625,6 +684,141 @@
       <span class="context-menu-label">Xóa khỏi thư viện</span>
     </div>
   </div>
+
+  <!-- ══════════════════════ SMART PREFERENCE FILTER MODAL ══════════════════════ -->
+  <dialog class="smart-pref-modal" id="smart-preference-modal" aria-labelledby="smart-pref-title">
+    <div class="smart-pref-backdrop" onclick="closeSmartPreferenceControl()"></div>
+    <div class="smart-pref-container">
+      <header class="smart-pref-header">
+        <div class="smart-pref-title-group">
+          <span class="smart-pref-badge"><span class="badge-sparkle">✨</span> AI Smart Taste Filter</span>
+          <h2 id="smart-pref-title">Bộ lọc sở thích thông minh</h2>
+          <p class="smart-pref-desc">Phối nhạc cá nhân hóa theo tâm trạng, hoạt động và phong cách bạn muốn nghe</p>
+        </div>
+        <button class="dialog-close smart-dialog-close" type="button" onclick="closeSmartPreferenceControl()" aria-label="Đóng">✕</button>
+      </header>
+
+      <div class="smart-pref-body">
+        <!-- Section 1: Mood & Vibe -->
+        <div class="smart-pref-section">
+          <div class="smart-section-label">
+            <span class="smart-step-num">1</span>
+            <strong>Tâm trạng của bạn (Mood & Vibe)</strong>
+            <small>Chọn tâm trạng bạn muốn đắm chìm vào</small>
+          </div>
+          <div class="smart-mood-grid" id="smart-mood-grid">
+            <button type="button" class="smart-mood-card active" data-mood="chill" onclick="toggleSmartMood(this)">
+              <span class="sm-card-icon">🍃</span>
+              <span class="sm-card-name">Chill & Thư giãn</span>
+            </button>
+            <button type="button" class="smart-mood-card" data-mood="focus" onclick="toggleSmartMood(this)">
+              <span class="sm-card-icon">🎧</span>
+              <span class="sm-card-name">Tập trung làm việc</span>
+            </button>
+            <button type="button" class="smart-mood-card" data-mood="energy" onclick="toggleSmartMood(this)">
+              <span class="sm-card-icon">⚡</span>
+              <span class="sm-card-name">Năng lượng hứng khởi</span>
+            </button>
+            <button type="button" class="smart-mood-card" data-mood="sad" onclick="toggleSmartMood(this)">
+              <span class="sm-card-icon">🌧️</span>
+              <span class="sm-card-name">Tâm trạng & Suy tư</span>
+            </button>
+            <button type="button" class="smart-mood-card" data-mood="romantic" onclick="toggleSmartMood(this)">
+              <span class="sm-card-icon">💖</span>
+              <span class="sm-card-name">Lãng mạn ngọt ngào</span>
+            </button>
+            <button type="button" class="smart-mood-card" data-mood="workout" onclick="toggleSmartMood(this)">
+              <span class="sm-card-icon">🔥</span>
+              <span class="sm-card-name">Tập gym & Bứt phá</span>
+            </button>
+            <button type="button" class="smart-mood-card" data-mood="sleep" onclick="toggleSmartMood(this)">
+              <span class="sm-card-icon">🌙</span>
+              <span class="sm-card-name">Đêm muộn & Ngủ</span>
+            </button>
+            <button type="button" class="smart-mood-card" data-mood="party" onclick="toggleSmartMood(this)">
+              <span class="sm-card-icon">🪩</span>
+              <span class="sm-card-name">Tiệc tùng sôi động</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Section 2: Activity -->
+        <div class="smart-pref-section">
+          <div class="smart-section-label">
+            <span class="smart-step-num">2</span>
+            <strong>Hoạt động đang làm (Activity)</strong>
+            <small>Tối ưu nhịp độ theo bối cảnh</small>
+          </div>
+          <div class="smart-activity-chips" id="smart-activity-chips">
+            <button type="button" class="smart-chip-pill active" data-activity="Học tập" onclick="toggleSmartActivity(this)">💻 Học tập & Làm việc</button>
+            <button type="button" class="smart-chip-pill" data-activity="Thể thao" onclick="toggleSmartActivity(this)">🏋️ Thể thao & Chạy bộ</button>
+            <button type="button" class="smart-chip-pill" data-activity="Cà phê" onclick="toggleSmartActivity(this)">☕ Cà phê & Dạo phố</button>
+            <button type="button" class="smart-chip-pill" data-activity="Lái xe" onclick="toggleSmartActivity(this)">🚗 Lái xe / Đi đường</button>
+            <button type="button" class="smart-chip-pill" data-activity="Thư giãn" onclick="toggleSmartActivity(this)">🛋️ Thư giãn tại nhà</button>
+            <button type="button" class="smart-chip-pill" data-activity="Ngủ" onclick="toggleSmartActivity(this)">💤 Chuẩn bị đi ngủ</button>
+            <button type="button" class="smart-chip-pill" data-activity="Gaming" onclick="toggleSmartActivity(this)">🎮 Chơi game</button>
+          </div>
+        </div>
+
+        <!-- Section 3: Genre & Tags -->
+        <div class="smart-pref-section">
+          <div class="smart-section-label">
+            <span class="smart-step-num">3</span>
+            <strong>Thể loại âm nhạc (Genres)</strong>
+            <small>Chọn phong cách bạn yêu thích</small>
+          </div>
+          <div class="smart-genre-chips" id="smart-genre-chips">
+            <button type="button" class="smart-genre-pill active" data-genre="indie" onclick="toggleSmartGenre(this)">Indie Việt</button>
+            <button type="button" class="smart-genre-pill active" data-genre="acoustic" onclick="toggleSmartGenre(this)">Acoustic</button>
+            <button type="button" class="smart-genre-pill" data-genre="lofi" onclick="toggleSmartGenre(this)">Lofi Chill</button>
+            <button type="button" class="smart-genre-pill" data-genre="ballad" onclick="toggleSmartGenre(this)">Ballad / Pop</button>
+            <button type="button" class="smart-genre-pill" data-genre="rap" onclick="toggleSmartGenre(this)">Rap / HipHop</button>
+            <button type="button" class="smart-genre-pill" data-genre="r&b" onclick="toggleSmartGenre(this)">R&B Soul</button>
+            <button type="button" class="smart-genre-pill" data-genre="edm" onclick="toggleSmartGenre(this)">EDM / Remix</button>
+            <button type="button" class="smart-genre-pill" data-genre="ambient" onclick="toggleSmartGenre(this)">Ambient / Thiền</button>
+          </div>
+        </div>
+
+        <!-- Section 4: Tempo & Energy Level -->
+        <div class="smart-pref-section">
+          <div class="smart-section-label">
+            <span class="smart-step-num">4</span>
+            <strong>Nhịp độ & Năng lượng</strong>
+            <span class="smart-tempo-tag" id="smart-tempo-tag">⚖️ Cân bằng vừa phải</span>
+          </div>
+          <div class="smart-tempo-slider-wrap">
+            <input type="range" min="1" max="3" value="2" step="1" id="smart-tempo-range" class="smart-tempo-range" oninput="updateSmartTempo(this.value)">
+            <div class="smart-tempo-scale">
+              <span>🍃 Êm dịu & Sâu lắng</span>
+              <span>⚖️ Cân bằng vừa vặn</span>
+              <span>⚡ Sôi động & Bứt phá</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Match Bar -->
+        <div class="smart-match-bar">
+          <div class="smart-match-badge">
+            <span class="match-spark">🎯</span>
+            <div class="match-text">
+              <strong id="smart-match-count">Tìm thấy 3 bài hát phù hợp</strong>
+              <small>Độ tương thích sở thích: <span id="smart-match-pct">98%</span></small>
+            </div>
+          </div>
+          <div class="smart-match-list-preview" id="smart-match-preview"></div>
+        </div>
+      </div>
+
+      <footer class="smart-pref-footer">
+        <button type="button" class="smart-btn-secondary" onclick="resetSmartPreferences()">Đặt lại</button>
+        <button type="button" class="smart-btn-save-pl" onclick="saveSmartPreferenceToPlaylist()">Lưu thành Playlist</button>
+        <button type="button" class="smart-btn-primary" onclick="applyAndPlaySmartMix()">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          <span>Áp dụng & Phát ngay</span>
+        </button>
+      </footer>
+    </div>
+  </dialog>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js" vite-ignore></script>

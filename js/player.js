@@ -236,7 +236,7 @@ function renderPlayerMoodRecs(moodId, filterTag) {
 
     row.innerHTML = `
       <div class="mpr-track-num-cell">
-        <span class="mpr-track-num">${pos + 1}</span>
+        <span class="mpr-track-num"></span>
         <div class="mpr-track-eq" aria-label="Đang phát">
           <span></span><span></span><span></span>
         </div>
