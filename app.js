@@ -3555,8 +3555,11 @@ function syncLikeButtons() {
 function toggleExpanded() {
   state.isExpanded = !state.isExpanded;
   const player = document.getElementById('expanded-player');
-  player.classList.toggle('open', state.isExpanded);
-  player.setAttribute('aria-hidden', String(!state.isExpanded));
+  if (player) {
+    player.scrollTop = 0;
+    player.classList.toggle('open', state.isExpanded);
+    player.setAttribute('aria-hidden', String(!state.isExpanded));
+  }
   document.body.classList.toggle('player-expanded', state.isExpanded);
   if (!state.isExpanded) closeExpandedTrackOptions();
 }
@@ -3587,6 +3590,7 @@ function saveCurrentTrackToPlaylist(event) {
 window.setExpandedViewMode = function setExpandedViewMode(mode) {
   const player = document.getElementById('expanded-player');
   if (!player) return;
+  player.scrollTop = 0;
   player.classList.remove('mode-art', 'mode-lyrics', 'mode-karaoke');
   player.classList.add(`mode-${mode}`);
 
@@ -3768,9 +3772,13 @@ function buildUpNext() {
     div.type = 'button';
     div.addEventListener('click', () => playSong(idx));
     const image = document.createElement('img');
-    image.src = song.img;
+    image.src = song.img || 'album_lumina.jpg';
     image.alt = '';
     image.className = 'up-next-art';
+    image.onerror = function() {
+      this.onerror = null;
+      this.src = 'album_lumina.jpg';
+    };
     const info = document.createElement('span');
     info.className = 'up-next-info';
     const title = document.createElement('span');
@@ -3800,8 +3808,12 @@ function buildQueuePanel() {
     button.type = 'button';
     button.addEventListener('click', () => playSong(idx));
     const image = document.createElement('img');
-    image.src = song.img;
+    image.src = song.img || 'album_lumina.jpg';
     image.alt = '';
+    image.onerror = function() {
+      this.onerror = null;
+      this.src = 'album_lumina.jpg';
+    };
     const info = document.createElement('span');
     const title = document.createElement('strong');
     title.textContent = song.title;
@@ -3821,8 +3833,12 @@ function buildQueuePanel() {
     button.type = 'button';
     button.addEventListener('click', () => playSong(idx));
     const image = document.createElement('img');
-    image.src = song.img;
+    image.src = song.img || 'album_lumina.jpg';
     image.alt = '';
+    image.onerror = function() {
+      this.onerror = null;
+      this.src = 'album_lumina.jpg';
+    };
     const info = document.createElement('span');
     const title = document.createElement('strong');
     title.textContent = song.title;

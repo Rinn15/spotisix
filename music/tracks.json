@@ -6,30 +6,62 @@
     "duration": 260,
     "img": "quan-son-tu.jpg",
     "audioSrc": "./music/Quan Sơn Tửu.mp3",
-    "lrc": "./music/Quan Sơn Tửu.lrc",
-    "moods": ["chill", "relaxing", "sleep"],
-    "tags": ["Ambient", "Calm"]
+    "moods": [
+      "chill",
+      "relaxing",
+      "sleep"
+    ],
+    "tags": [
+      "Ambient",
+      "Calm"
+    ]
   },
   {
     "title": "Không Yêu Em Thì Yêu Ai?",
-    "artist": "Vũ., Low G",
+    "artist": "Vũ., và, Low G",
     "album": "Bảo Tàng Của Nuối Tiếc",
     "duration": 232,
-    "img": "khong-yeu-em-thi-yeu-ai.jpg",
-    "audioSrc": "./music/Không Yêu Em Thì Yêu Ai_.mp3",
-    "lrc": "./music/Không Yêu Em Thì Yêu Ai_.lrc",
-    "moods": ["chill", "sad"],
-    "tags": ["Acoustic", "Indie"]
+    "img": "album_aurora.jpg",
+    "audioSrc": "./music/Không Yêu Em Thì Yêu Ai?.mp3",
+    "moods": [
+      "chill",
+      "sad"
+    ],
+    "tags": [
+      "Acoustic",
+      "Indie"
+    ]
   },
   {
     "title": "Vùng Ký Ức",
     "artist": "Chillies",
     "album": "Vùng Ký Ức",
     "duration": 297,
-    "img": "vung-ky-uc.jpg",
+    "img": "album_nova.jpg",
     "audioSrc": "./music/Vùng Ký Ức.mp3",
-    "lrc": "./music/Vùng Ký Ức.lrc",
-    "moods": ["chill", "sad"],
-    "tags": ["Acoustic", "Indie"]
+    "moods": [
+      "chill",
+      "sad"
+    ],
+    "tags": [
+      "Acoustic",
+      "Indie"
+    ]
+  },
+  {
+    "title": "Sống Cho Hết Đời Thanh Xuân 2",
+    "artist": "BCTM và TaynguyenSound",
+    "album": "Sống Cho Hết Đời Thanh Xuân 2",
+    "duration": 240,
+    "img": "so-cho-het-doi-thanh-xuan-2.jpg",
+    "audioSrc": "./music/Sống Cho Hết Đời Thanh Xuân 2.mp3",
+    "moods": [
+      "chill",
+      "happy"
+    ],
+    "tags": [
+      "Acoustic",
+      "Indie"
+    ]
   }
 ]

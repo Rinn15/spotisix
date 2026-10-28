@@ -325,7 +325,7 @@ function stopStems() {
 // ─── Online lyrics (LRCLIB) ──────────────────────────────────────
 // Chỉ cần title + artist đúng (trong tracks.json hoặc bảng published_tracks
 // trên Supabase) là lời được tìm tự động. Kết quả được cache trong localStorage.
-const LYRICS_CACHE_KEY = 'spotisix.lyricsCache.v1';
+const LYRICS_CACHE_KEY = 'spotisix.lyricsCache.v2';
 const LYRICS_CACHE_MAX = 200;
 
 function readLyricsCache() {
@@ -390,6 +390,12 @@ function scoreLyricsMatch(item, wantedTitle, wantedArtists, duration) {
   if (itemTitle === wantedTitle) score += 50;
   else if (itemTitle.includes(wantedTitle) || wantedTitle.includes(itemTitle)) score += 20;
   else return -Infinity; // tên bài khác hẳn -> bỏ, tránh hiện nhầm lời bài khác
+
+  // Tránh nhầm bản remix/mashup khi bài gốc không phải remix
+  const isRemixCandidate = /\b(remix|mashup|cover)\b|\sx\s/i.test(item.trackName || '');
+  const wantsRemix = /\b(remix|mashup|cover)\b|\sx\s/i.test(wantedTitle);
+  if (isRemixCandidate && !wantsRemix) score -= 40;
+
   if (wantedArtists.some(name => itemArtist.includes(name) || name.includes(itemArtist))) score += 30;
   if (item.syncedLyrics) score += 15;
   if (duration > 0 && item.duration) {
@@ -463,6 +469,11 @@ async function loadLocalLrc(track) {
     const guess = track.audioSrc.replace(/\.[^./\\]+$/, '.lrc');
     if (!urls.includes(guess)) urls.push(guess);
   }
+  if (typeof track.title === 'string' && track.title.trim()) {
+    const cleanTitle = track.title.trim();
+    urls.push(`./music/${cleanTitle}.lrc`);
+    urls.push(`./music/${cleanTitle.replace(/[?]/g, '_')}.lrc`);
+  }
   for (const url of urls) {
     for (const candidate of [encodeURI(url), url]) {
       const response = await fetch(candidate, { cache: 'no-store' }).catch(() => null);
@@ -505,12 +516,20 @@ async function loadLyrics(title, artist, trackObj = null) {
       return;
     }
 
-    // 2. Cache từ lần tìm trước
+    // 2. File .lrc chính xác đi kèm theo bài hát trong thư mục music/ (ưu tiên cao nhất cho nhạc nội bộ)
+    const localText = await loadLocalLrc(track);
+    if (isStale()) return;
+    if (localText) {
+      showLyricsResult({ syncedLyrics: localText }, 'Lời bài hát đồng bộ.');
+      return;
+    }
+
+    // 3. Cache từ lần tìm LRCLIB trước
     const cacheKey = normalizeLyricsText(`${cleanTrackTitle(effectiveTitle)}|${effectiveArtist}`);
     const cached = getCachedLyrics(cacheKey);
     if (cached && showLyricsResult(cached, 'Lời bài hát từ LRCLIB (đã lưu).')) return;
 
-    // 3. Tìm online trên LRCLIB chỉ bằng title + artist
+    // 4. Tìm online trên LRCLIB chỉ bằng title + artist
     const duration = Number(track.duration) > 0 ? Number(track.duration)
       : (Number.isFinite(player.duration) ? player.duration : 0);
     const { result, hadServerError } = await findOnlineLyrics(effectiveTitle, effectiveArtist, duration);
@@ -518,14 +537,6 @@ async function loadLyrics(title, artist, trackObj = null) {
     if (result && hasLyrics(result)) {
       setCachedLyrics(cacheKey, { syncedLyrics: result.syncedLyrics || '', plainLyrics: result.plainLyrics || '' });
       showLyricsResult(result, 'Lời bài hát từ LRCLIB.');
-      return;
-    }
-
-    // 4. Dự phòng: file .lrc trong thư mục music/
-    const localText = await loadLocalLrc(track);
-    if (isStale()) return;
-    if (localText) {
-      showLyricsResult({ syncedLyrics: localText }, 'Lời bài hát (file .lrc offline).');
       return;
     }
 
@@ -569,6 +580,14 @@ function parseSyncedLyrics(text) {
   return entries.sort((first, second) => first.time - second.time);
 }
 
+function scrollElementIntoContainerCenter(container, element) {
+  if (!container || !element) return;
+  const containerHeight = container.clientHeight;
+  const offsetRelativeToContainer = (element.getBoundingClientRect().top - container.getBoundingClientRect().top) + container.scrollTop;
+  const targetTop = offsetRelativeToContainer - (containerHeight / 2) + (element.clientHeight / 2);
+  container.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+}
+
 function renderCurrentLyric() {
   if (!lyrics.length) return;
   const index = lyrics.findLastIndex(line => line.time <= player.currentTime);
@@ -580,12 +599,17 @@ function renderCurrentLyric() {
 
   const rows = lyricsLinesContainer.querySelectorAll('.lyrics-line');
   rows.forEach((row, rowIndex) => row.classList.toggle('active', rowIndex === activeIndex));
-  rows[activeIndex]?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  if (rows[activeIndex]) {
+    scrollElementIntoContainerCenter(lyricsLinesContainer.parentElement, rows[activeIndex]);
+  }
 
   if (expLyricsLinesContainer) {
     const expRows = expLyricsLinesContainer.querySelectorAll('.lyrics-line');
     expRows.forEach((row, rowIndex) => row.classList.toggle('active', rowIndex === activeIndex));
-    expRows[activeIndex]?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    if (expRows[activeIndex]) {
+      const viewport = document.getElementById('exp-lyrics-viewport') || expLyricsLinesContainer.parentElement;
+      scrollElementIntoContainerCenter(viewport, expRows[activeIndex]);
+    }
   }
 }
 
