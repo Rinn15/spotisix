@@ -236,7 +236,10 @@ async function loadMusicManifest() {
       duration: Number.isFinite(Number(track.duration)) && Number(track.duration) > 0 ? Number(track.duration) : 0,
       img: typeof track.img === 'string' && track.img.trim() ? track.img.trim() : 'album_lumina.jpg',
       audioSrc: track.audioSrc.trim(),
+      mood: typeof track.mood === 'string' ? track.mood : null,
       moods: Array.isArray(track.moods) ? track.moods : [],
+      activity: typeof track.activity === 'string' ? track.activity : null,
+      genre: typeof track.genre === 'string' ? track.genre : null,
       tags: Array.isArray(track.tags) ? track.tags : [],
       lrc: typeof track.lrc === 'string' && track.lrc.trim() ? track.lrc.trim() : '',
       lyrics: typeof track.lyrics === 'string' && track.lyrics.trim() ? track.lyrics.trim() : '',
@@ -258,6 +261,10 @@ async function loadMusicManifest() {
 // ─── Init ─────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
   await loadMusicManifest();
+  window.getSpotiSixSongs = () => songs;
+  window.getSpotiSixCurrentIndex = () => state.currentSong;
+  window.getSpotiSixCurrentElapsed = () => audioPlayer?.currentTime || state.elapsed || 0;
+  if (window.SpotisixRecommendations) window.SpotisixRecommendations.init();
   if (Array.isArray(songs) && songs.length > 0) {
     const randomIdx = Math.floor(Math.random() * songs.length);
     state.currentSong = randomIdx;
@@ -2081,6 +2088,7 @@ function renderLibraryAlbumsAndArtists() {
       artistsList.appendChild(row);
     });
   }
+  if (window.SpotisixRecommendations) window.SpotisixRecommendations.render();
 }
 
 async function loadCommunityTracksOnStartup() {
@@ -2480,7 +2488,9 @@ function addPublishedTrackToPlayer(track) {
     audioSrc: track.public_url || resolvePublishedTrackAudioUrl(track),
     mood: track.mood || null,
     moods: track.mood ? [String(track.mood).trim().toLowerCase() === 'bad' ? 'sad' : String(track.mood).trim().toLowerCase()] : [],
-    tags: [],
+    activity: track.activity || null,
+    genre: track.genre || null,
+    tags: Array.isArray(track.tags) ? track.tags : [],
     publishedTrackId: track.id,
   }) - 1;
   publishedTrackIndexes.set(track.id, index);
@@ -2677,6 +2687,7 @@ async function initializeAuth() {
 
 function setAuthSession(session) {
   const authenticated = Boolean(session?.user);
+  window.getSpotiSixUserKey = () => session?.user?.id || '';
   const uploadStatus = document.getElementById('community-upload-status');
   if (uploadStatus && !uploadStatus.classList.contains('is-error')) {
     uploadStatus.textContent = authenticated
@@ -2710,6 +2721,7 @@ function setAuthSession(session) {
     document.getElementById('account-email').textContent = session.user.email || 'Tài khoản SpotiSix';
     setAuthStatus('');
   }
+  if (window.SpotisixRecommendations) window.SpotisixRecommendations.render();
 }
 
 function authEmailRedirectUrl() {
@@ -3132,6 +3144,11 @@ function playSong(idx) {
     return;
   }
   if (!Number.isInteger(idx) || idx < 0 || idx >= songs.length) return;
+  if (window.SpotisixRecommendations) {
+    const previousSong = songs[state.currentSong];
+    const previousElapsed = audioPlayer && Number.isFinite(audioPlayer.currentTime) ? audioPlayer.currentTime : state.elapsed;
+    window.SpotisixRecommendations.recordSkip(previousSong, previousElapsed);
+  }
   const queueIndex = state.playbackQueue.indexOf(idx);
   if (queueIndex === -1) {
     state.playbackQueue = [idx, ...songs.map((_, index) => index).filter(index => index !== idx)];
@@ -3141,6 +3158,7 @@ function playSong(idx) {
   }
   state.currentSong = idx;
   state.isPlaying = true;
+  if (window.SpotisixRecommendations) window.SpotisixRecommendations.recordPlay(songs[idx]);
   state.elapsed = 0;
   state.progress = 0;
   updatePlayerUI();
@@ -3497,6 +3515,7 @@ function toggleLike(e, idx) {
   e.stopPropagation();
   if (state.likedSongs.has(idx)) state.likedSongs.delete(idx);
   else state.likedSongs.add(idx);
+  if (window.SpotisixRecommendations) window.SpotisixRecommendations.recordLike(songs[idx], state.likedSongs.has(idx));
   localStorage.setItem(likedSongsStorageKey, JSON.stringify([...state.likedSongs]));
   renderActivePlaylist();
   if (idx === state.currentSong) syncLikeButtons();
@@ -3506,6 +3525,7 @@ function toggleLikeNPB(e) {
   const idx = state.currentSong;
   if (state.likedSongs.has(idx)) state.likedSongs.delete(idx);
   else state.likedSongs.add(idx);
+  if (window.SpotisixRecommendations) window.SpotisixRecommendations.recordLike(songs[idx], state.likedSongs.has(idx));
   localStorage.setItem(likedSongsStorageKey, JSON.stringify([...state.likedSongs]));
   renderActivePlaylist();
   syncLikeButtons();
@@ -3514,6 +3534,7 @@ function toggleLikeExpanded() {
   const idx = state.currentSong;
   if (state.likedSongs.has(idx)) state.likedSongs.delete(idx);
   else state.likedSongs.add(idx);
+  if (window.SpotisixRecommendations) window.SpotisixRecommendations.recordLike(songs[idx], state.likedSongs.has(idx));
   localStorage.setItem(likedSongsStorageKey, JSON.stringify([...state.likedSongs]));
   renderActivePlaylist();
   syncLikeButtons();
@@ -3694,6 +3715,7 @@ function updateNativeAudioProgress() {
   if (!songs[state.currentSong]?.audioSrc || !Number.isFinite(audioPlayer.duration)) return;
   state.elapsed = audioPlayer.currentTime;
   state.progress = state.elapsed / audioPlayer.duration;
+  if (window.SpotisixRecommendations) window.SpotisixRecommendations.recordProgress(songs[state.currentSong], audioPlayer.currentTime);
   updateProgress();
 }
 
