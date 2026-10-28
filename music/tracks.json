@@ -6,7 +6,30 @@
     "duration": 260,
     "img": "quan-son-tu.jpg",
     "audioSrc": "./music/Quan Sơn Tửu.mp3",
+    "lrc": "./music/Quan Sơn Tửu.lrc",
     "moods": ["chill", "relaxing", "sleep"],
     "tags": ["Ambient", "Calm"]
+  },
+  {
+    "title": "Không Yêu Em Thì Yêu Ai?",
+    "artist": "Vũ., Low G",
+    "album": "Bảo Tàng Của Nuối Tiếc",
+    "duration": 232,
+    "img": "khong-yeu-em-thi-yeu-ai.jpg",
+    "audioSrc": "./music/Không Yêu Em Thì Yêu Ai_.mp3",
+    "lrc": "./music/Không Yêu Em Thì Yêu Ai_.lrc",
+    "moods": ["chill", "sad"],
+    "tags": ["Acoustic", "Indie"]
+  },
+  {
+    "title": "Vùng Ký Ức",
+    "artist": "Chillies",
+    "album": "Vùng Ký Ức",
+    "duration": 297,
+    "img": "vung-ky-uc.jpg",
+    "audioSrc": "./music/Vùng Ký Ức.mp3",
+    "lrc": "./music/Vùng Ký Ức.lrc",
+    "moods": ["chill", "sad"],
+    "tags": ["Acoustic", "Indie"]
   }
 ]
