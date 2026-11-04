@@ -75,7 +75,7 @@
     <p class="nearby-privacy-note">Khi bật tìm kiếm trên web, tên hiển thị của bạn được chia sẻ với người dùng SpotiSix khác đang tìm kiếm. Kết nối qua Internet, không giới hạn khoảng cách Bluetooth. Đóng cửa sổ hoặc nhấn “Hủy tìm kiếm” để ngừng chia sẻ.</p>
   </dialog>
   <dialog class="playlist-dialog" id="playlist-dialog" aria-labelledby="playlist-dialog-title">
-    <form id="playlist-form">
+    <form id="playlist-form" onsubmit="createPlaylist(event)">
       <button class="dialog-close" type="button" onclick="closePlaylistDialog()" aria-label="Đóng">×</button>
       <span class="eyebrow">THƯ VIỆN CỦA BẠN</span>
       <h2 id="playlist-dialog-title">Tạo danh sách phát</h2>
@@ -682,6 +682,23 @@
     <div class="context-menu-item context-menu-danger" role="menuitem" data-action="delete">
       <svg class="context-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
       <span class="context-menu-label">Xóa khỏi thư viện</span>
+    </div>
+  </div>
+
+  <!-- Track in Playlist Context Menu -->
+  <div id="track-context-menu" class="spotisix-context-menu hidden" role="menu" aria-label="Tùy chọn bài hát">
+    <div class="context-menu-item" role="menuitem" data-action="track-queue">
+      <svg class="context-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+      <span class="context-menu-label">Thêm vào hàng chờ</span>
+    </div>
+    <div class="context-menu-item" role="menuitem" data-action="track-like">
+      <svg class="context-menu-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+      <span class="context-menu-label" id="track-context-like-label">Yêu thích</span>
+    </div>
+    <div class="context-menu-separator"></div>
+    <div class="context-menu-item context-menu-danger" role="menuitem" data-action="track-remove">
+      <svg class="context-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+      <span class="context-menu-label" id="track-context-remove-label">Xóa khỏi playlist</span>
     </div>
   </div>
 
