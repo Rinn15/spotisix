@@ -192,6 +192,33 @@
     return preferences;
   }
 
+  // Dùng khóa riêng cho việc chống trùng trong danh sách đề xuất.
+  // Với nhạc cộng đồng, publishedTrackId là định danh ổn định nhất.
+  // Với nhạc thường, tên bài + nghệ sĩ giúp nhận ra cùng một bài
+  // ngay cả khi dữ liệu xuất hiện ở nhiều bản ghi có ID khác nhau.
+  function recommendationTrackKey(track) {
+    if (!track) return '';
+    if (track.publishedTrackId) return `community:${track.publishedTrackId}`;
+
+    const title = normalize(track.title);
+    const artist = normalize(track.artist);
+    if (title && artist) return `song:${title}::${artist}`;
+
+    return trackKey(track);
+  }
+
+  // Danh sách đầu vào đã được xếp hạng; giữ bản xuất hiện đầu tiên
+  // (tức bài có điểm/thứ hạng cao hơn) và loại các bản ghi trùng phía sau.
+  function applyRepeatFilter(ranked) {
+    const seen = new Set();
+    return ranked.filter(item => {
+      const key = recommendationTrackKey(item.track);
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
   function scoreTrack(track, history, preferences, currentIndex) {
     const key = trackKey(track);
     const entry = history[key] || {};
@@ -243,7 +270,10 @@
         a.index - b.index
       );
     }
-    return { ranked: ranked.slice(0, 8), hasHistory };
+    // Lọc trùng sau khi xếp hạng để luôn giữ lại bản có thứ hạng cao nhất.
+    // Chỉ lấy 8 bài sau khi lọc, nhờ vậy các bài đứng sau có thể bù vào vị trí trùng.
+    const uniqueRanked = applyRepeatFilter(ranked);
+    return { ranked: uniqueRanked.slice(0, 8), hasHistory };
   }
 
   function render() {
@@ -336,6 +366,8 @@
     recordProgress,
     recordLike,
     flushProgress,
+    // Được công khai để kiểm thử Repeat Filter từ DevTools Console.
+    applyRepeatFilter,
   };
   window.addEventListener('beforeunload', () => {
     const allSongs = typeof window.getSpotiSixSongs === 'function' ? window.getSpotiSixSongs() : (Array.isArray(window.songs) ? window.songs : []);
