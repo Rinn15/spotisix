@@ -4939,3 +4939,88 @@ body.queue-hidden .queue-panel { display: none; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+
+/* Sprint 4 — Home replay and Fresh Picks */
+#home-featured-tracks {
+  min-height: 36px;
+}
+.home-recent-empty {
+  width: 100%;
+  padding: 18px 16px;
+  border: 1px dashed rgba(255,255,255,.16);
+  border-radius: 10px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.home-replay-card {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+}
+.home-replay-card .album-card-art {
+  display: block;
+}
+.home-replay-card .album-card-title,
+.home-replay-card .album-card-sub {
+  display: block;
+  width: 100%;
+}
+.home-replay-card:focus-visible {
+  outline: 2px solid var(--sp-green);
+  outline-offset: 4px;
+  border-radius: 10px;
+}
+.spotisix-fresh-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 9px;
+  border: 1px solid rgba(30, 215, 96, .28);
+  border-radius: 999px;
+  color: #1ed760;
+  background: rgba(30, 215, 96, .09);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .7px;
+  text-transform: uppercase;
+}
+.spotisix-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.spotisix-refresh-btn:hover,
+.spotisix-refresh-btn:focus-visible {
+  color: #fff;
+  border-color: var(--sp-green);
+  background: rgba(30, 215, 96, .1);
+}
+@media (max-width: 640px) {
+  .spotisix-personal-recs-section .section-title-row {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .spotisix-personal-recs-section .spotisix-recs-row {
+    gap: 12px;
+  }
+  .spotisix-personal-recs-section .spotisix-rec-card {
+    min-width: 142px;
+    max-width: 142px;
+  }
+  .spotisix-personal-recs-section .spotisix-rec-card .album-card-art {
+    width: 142px;
+    height: 142px;
+  }
+}
