@@ -2337,7 +2337,7 @@ async function loadCommunityTracksOnStartup() {
   try {
     const { data: tracks, error } = await supabaseClient
       .from('published_tracks')
-      .select('id, title, artist, album, object_path, mood, activity, duration_seconds, created_at')
+      .select('*')
       .order('created_at', { ascending: false });
     if (error) {
       console.warn('Không thể nạp bài hát cộng đồng:', error.message);
@@ -2355,6 +2355,8 @@ async function loadCommunityTracksOnStartup() {
       renderLocalLibraryTracks();
       renderHomeDynamicSections();
       renderLibraryAlbumsAndArtists();
+      renderMoodRecommendations(activeMoodId);
+      renderMoodView();
       if (typeof initPlayerMoodUI === 'function') initPlayerMoodUI();
     }
   } catch (err) {
@@ -2744,6 +2746,11 @@ function addPublishedTrackToPlayer(track) {
   const coverImg = covers[songs.length % covers.length];
   const audioUrl = track.public_url || resolvePublishedTrackAudioUrl(track);
   const durationSeconds = Number(track.duration_seconds ?? track.duration ?? 0);
+  const rawMoods = track.moods ?? track.mood ?? track.mood_text ?? '';
+  const moods = (Array.isArray(rawMoods) ? rawMoods : String(rawMoods).split(/[,;|]/))
+    .map(value => String(value).trim().toLowerCase())
+    .filter(Boolean)
+    .map(value => value === 'bad' ? 'sad' : value);
   const index = songs.push({
     title: track.title,
     artist: track.artist,
@@ -2751,9 +2758,9 @@ function addPublishedTrackToPlayer(track) {
     duration: Number.isFinite(durationSeconds) && durationSeconds > 0 ? durationSeconds : 0,
     img: coverImg,
     audioSrc: audioUrl,
-    mood: track.mood || null,
-    moods: track.mood ? [String(track.mood).trim().toLowerCase() === 'bad' ? 'sad' : String(track.mood).trim().toLowerCase()] : [],
-    activity: track.activity || null,
+    mood: moods[0] || null,
+    moods,
+    activity: track.activity || track.activity_text || null,
     genre: track.genre || null,
     tags: Array.isArray(track.tags) ? track.tags : [],
     publishedTrackId: track.id,
