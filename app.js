@@ -148,6 +148,11 @@ const moodDefinitions = [
 let activeMoodId = 'chill';
 let activeMoodFilterTag = 'Tất cả';
 const moodShuffleOffsets = new Map();
+const moodRecommendationCache = new Map();
+window.addEventListener('spotisix:recommendations-updated', () => {
+  moodRecommendationCache.clear();
+  if (typeof renderPlayerMoodRecs === 'function') renderPlayerMoodRecs(activeMoodId);
+});
 
 const playlistStorageKey = 'spotisix.playlists';
 const likedSongsStorageKey = 'spotisix.likedSongs';
@@ -478,7 +483,15 @@ function getMoodTrackIndices(moodId, filterTag = 'Tất cả') {
     });
   }
 
-  return indices.map(({ index }) => index);
+  const songCount = songs.length;
+  const offset = moodShuffleOffsets.get(moodId) || 0;
+  const cacheKey = `${moodId}:${filterTag}:${offset}:${songCount}`;
+  if (moodRecommendationCache.has(cacheKey)) return [...moodRecommendationCache.get(cacheKey)];
+  const diverseIndices = window.SpotisixRecommendations
+    ? window.SpotisixRecommendations.getDiverseIndices(indices.map(({ index }) => index), { limit: 8, offset })
+    : indices.map(({ index }) => index).slice(0, 8);
+  moodRecommendationCache.set(cacheKey, diverseIndices);
+  return [...diverseIndices];
 }
 
 function setActiveMood(moodId, shouldScroll = false) {
@@ -602,7 +615,18 @@ function saveMoodToPlaylist(moodId) {
 function refreshMoodRecommendations(moodId) {
   const currentOffset = moodShuffleOffsets.get(moodId) || 0;
   moodShuffleOffsets.set(moodId, currentOffset + 1);
+  moodRecommendationCache.clear();
+  const indices = getMoodTrackIndices(moodId, activeMoodFilterTag);
+  if (window.SpotisixRecommendations) {
+    const allTracks = window.getSpotiSixSongs?.() || [];
+    void window.SpotisixRecommendations.logRecommendations(
+      'refresh',
+      indices.map(index => ({ track: allTracks[index], index, score: 0 })).filter(item => item.track),
+      'player',
+    ).catch(error => console.warn('Không thể lưu nhật ký làm mới đề xuất Player.', error));
+  }
   renderMoodRecommendations(moodId, activeMoodFilterTag);
+  if (typeof renderPlayerMoodRecs === 'function') renderPlayerMoodRecs(moodId);
   const mood = moodDefinitions.find(m => m.id === moodId);
   showAppToast(`Đã làm mới đề xuất cho “${mood?.name || 'Tâm trạng'}”.`);
 }
@@ -800,12 +824,20 @@ function renderMoodRecommendations(moodId, filterTag = activeMoodFilterTag) {
     `;
 
     row.addEventListener('click', () => {
+      if (window.SpotisixRecommendations) {
+        void window.SpotisixRecommendations.recordRecommendedPlay(song, 'player')
+          .catch(error => console.warn('Không thể lưu lượt phát từ đề xuất Player.', error));
+      }
       playSong(songIdx);
     });
 
     row.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
+        if (window.SpotisixRecommendations) {
+          void window.SpotisixRecommendations.recordRecommendedPlay(song, 'player')
+            .catch(error => console.warn('Không thể lưu lượt phát từ đề xuất Player.', error));
+        }
         playSong(songIdx);
       }
     });
@@ -2361,7 +2393,7 @@ async function loadCommunityTracksOnStartup() {
   try {
     const { data: tracks, error } = await supabaseClient
       .from('published_tracks')
-      .select('id, title, artist, album, object_path, mood, activity, created_at')
+      .select('id, title, artist, album, object_path, mood, activity, duration_seconds, created_at')
       .order('created_at', { ascending: false });
     if (error) {
       console.warn('Không thể nạp bài hát cộng đồng:', error.message);
@@ -2607,6 +2639,7 @@ async function publishAudioFiles(fileList) {
       }
 
       const title = file.name.replace(/\.[^.]+$/, '').trim() || file.name;
+      const durationSeconds = await resolveAudioDurationSeconds(file);
       const searchText = normalizeSearchText(`${title} ${session.user.user_metadata?.display_name || session.user.email || ''}`);
       const metadataInsert = {
         uploader_id: session.user.id,
@@ -2617,6 +2650,7 @@ async function publishAudioFiles(fileList) {
         object_path: uploaded?.objectKey || objectPath,
         mime_type: file.type,
         size_bytes: file.size,
+        duration_seconds: durationSeconds,
         mood: document.getElementById('community-mood')?.value || null,
         activity: document.getElementById('community-activity')?.value || null,
       };
@@ -2632,6 +2666,7 @@ async function publishAudioFiles(fileList) {
           mood: metadataInsert.mood,
           activity: metadataInsert.activity,
           public_url: publicUrl,
+          duration_seconds: durationSeconds,
         });
         continue;
       }
@@ -2740,17 +2775,38 @@ async function uploadAudioToRemoteStorage(file, userId, safeName, session = null
   };
 }
 
+async function resolveAudioDurationSeconds(source) {
+  if (!source) return 0;
+
+  return new Promise(resolve => {
+    const audio = new Audio();
+    const fallback = () => resolve(0);
+    const onLoaded = () => {
+      const duration = Number(audio.duration);
+      resolve(Number.isFinite(duration) && duration > 0 ? Math.floor(duration) : 0);
+    };
+
+    audio.preload = 'metadata';
+    audio.addEventListener('loadedmetadata', onLoaded, { once: true });
+    audio.addEventListener('error', fallback, { once: true });
+    audio.src = source;
+    audio.load();
+  });
+}
+
 function addPublishedTrackToPlayer(track) {
   if (publishedTrackIndexes.has(track.id)) return publishedTrackIndexes.get(track.id);
   const covers = ['quan-son-tu.jpg', 'album_lofi.jpg', 'album_aurora.jpg', 'album_jazz.jpg', 'album_nova.jpg'];
   const coverImg = covers[songs.length % covers.length];
+  const audioUrl = track.public_url || resolvePublishedTrackAudioUrl(track);
+  const durationSeconds = Number(track.duration_seconds ?? track.duration ?? 0);
   const index = songs.push({
     title: track.title,
     artist: track.artist,
     album: track.album || 'Thư viện SpotiSix',
-    duration: 0,
+    duration: Number.isFinite(durationSeconds) && durationSeconds > 0 ? durationSeconds : 0,
     img: coverImg,
-    audioSrc: track.public_url || resolvePublishedTrackAudioUrl(track),
+    audioSrc: audioUrl,
     mood: track.mood || null,
     moods: track.mood ? [String(track.mood).trim().toLowerCase() === 'bad' ? 'sad' : String(track.mood).trim().toLowerCase()] : [],
     activity: track.activity || null,
@@ -2759,6 +2815,18 @@ function addPublishedTrackToPlayer(track) {
     publishedTrackId: track.id,
   }) - 1;
   publishedTrackIndexes.set(track.id, index);
+
+  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) {
+    resolveAudioDurationSeconds(audioUrl).then(dur => {
+      if (!dur) return;
+      songs[index].duration = dur;
+      renderActivePlaylist();
+      renderLocalLibraryTracks();
+      renderHomeDynamicSections();
+      renderMoodView();
+    });
+  }
+
   return index;
 }
 
@@ -2988,8 +3056,19 @@ function setAuthSession(session) {
     setAuthStatus('');
   }
   if (window.SpotisixRecommendations) {
-    window.SpotisixRecommendations.render();
-    if (authenticated) void window.SpotisixRecommendations.logImpression();
+    void (async () => {
+      if (authenticated) {
+        try {
+          await window.SpotisixRecommendations.loadRecommendationHistory();
+        } catch (error) {
+          console.warn('Không thể tải lịch sử đề xuất từ Supabase.', error);
+        }
+      }
+      moodRecommendationCache.clear();
+      window.dispatchEvent(new CustomEvent('spotisix:recommendations-updated'));
+      window.SpotisixRecommendations.render();
+      if (authenticated) void window.SpotisixRecommendations.logImpression('home');
+    })();
   }
 }
 
@@ -4920,7 +4999,8 @@ function computeSmartMatchingTracks() {
   });
 
   scores.sort((a, b) => b.score - a.score);
-  return scores;
+  if (!window.SpotisixRecommendations) return scores.slice(0, 8);
+  return window.SpotisixRecommendations.getDiverseRanked(scores, { limit: 8 });
 }
 
 function updateSmartMatchBar() {
@@ -4954,6 +5034,14 @@ window.applyAndPlaySmartMix = function applyAndPlaySmartMix() {
   const targetIndices = (matched.length > 0 ? matched : scored).map(s => s.index);
 
   if (targetIndices.length > 0) {
+    if (window.SpotisixRecommendations) {
+      const allTracks = window.getSpotiSixSongs?.() || [];
+      const recommendations = targetIndices.map(index => ({ track: allTracks[index], index, score: 0 })).filter(item => item.track);
+      void window.SpotisixRecommendations.logRecommendations('impression', recommendations, 'smart')
+        .catch(error => console.warn('Không thể lưu nhật ký Smart Mix.', error));
+      void window.SpotisixRecommendations.recordRecommendedPlay(allTracks[targetIndices[0]], 'smart')
+        .catch(error => console.warn('Không thể lưu lượt phát từ Smart Mix.', error));
+    }
     state.playbackQueue = targetIndices;
     state.queuePosition = 0;
     playSong(targetIndices[0]);
@@ -4966,6 +5054,12 @@ window.saveSmartPreferenceToPlaylist = function saveSmartPreferenceToPlaylist() 
   const scored = computeSmartMatchingTracks();
   const matched = scored.filter(s => s.score > 0);
   const targetTracks = (matched.length > 0 ? matched : scored).map(s => s.index);
+  if (window.SpotisixRecommendations) {
+    const allTracks = window.getSpotiSixSongs?.() || [];
+    const recommendations = targetTracks.map(index => ({ track: allTracks[index], index, score: 0 })).filter(item => item.track);
+    void window.SpotisixRecommendations.logRecommendations('impression', recommendations, 'smart')
+      .catch(error => console.warn('Không thể lưu nhật ký Smart Mix.', error));
+  }
 
   const moodName = [...smartPreferences.moods][0] || 'Mix';
   const actName = [...smartPreferences.activities][0] || 'Âm nhạc';

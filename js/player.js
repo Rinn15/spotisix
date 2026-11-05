@@ -269,18 +269,30 @@ function renderPlayerMoodRecs(moodId, filterTag) {
     `;
 
     row.addEventListener('click', () => {
+      if (window.SpotisixRecommendations) {
+        void window.SpotisixRecommendations.recordRecommendedPlay(allSongs[songIdx], 'player')
+          .catch(error => console.warn('Không thể lưu lượt phát từ đề xuất Player.', error));
+      }
       if (typeof playSong === 'function') playSong(songIdx);
     });
 
     row.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
+        if (window.SpotisixRecommendations) {
+          void window.SpotisixRecommendations.recordRecommendedPlay(allSongs[songIdx], 'player')
+            .catch(error => console.warn('Không thể lưu lượt phát từ đề xuất Player.', error));
+        }
         if (typeof playSong === 'function') playSong(songIdx);
       }
     });
 
     rowsContainer.appendChild(row);
   });
+
+  if (window.SpotisixRecommendations) {
+    void window.SpotisixRecommendations.logImpression('player', trackIndices);
+  }
 }
 
 // ─── Helper: get tracks for mood + filter ────────────────────────

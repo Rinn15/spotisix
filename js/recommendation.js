@@ -1,12 +1,21 @@
-/* SpotiSix — cá nhân hóa đề xuất dựa trên lịch sử nghe.
-   Dữ liệu được lưu trong localStorage của trình duyệt hiện tại; không gửi lịch sử nghe lên máy chủ. */
+/* SpotiSix — cá nhân hóa đề xuất dựa trên lịch sử nghe và log đề xuất. */
 (function () {
   'use strict';
 
   const STORAGE_PREFIX = 'spotisix.recommendationHistory.v1';
+  const RECOMMENDATION_LOG_PREFIX = 'spotisix.recommendationLog.v1';
+  const RECENT_PLAY_WINDOW_MS = 24 * 60 * 60 * 1000;
+  const RECOMMENDATION_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+  const MAX_ARTIST_PER_SET = 2;
+  const MAX_GENRE_PER_SET = 3;
+  const MAX_RECOMMENDATIONS = 8;
   function storageKey() {
     const userKey = typeof window.getSpotiSixUserKey === 'function' ? window.getSpotiSixUserKey() : '';
     return `${STORAGE_PREFIX}:${userKey || 'this-browser'}`;
+  }
+  function recommendationLogKey() {
+    const userKey = typeof window.getSpotiSixUserKey === 'function' ? window.getSpotiSixUserKey() : '';
+    return `${RECOMMENDATION_LOG_PREFIX}:${userKey || 'this-browser'}`;
   }
   const MAX_HISTORY_TRACKS = 500;
   let lastTrackKey = null;
@@ -16,7 +25,13 @@
   let refreshOffset = 0;
   let refreshInProgress = false;
   let statusMessage = '';
-  let impressionLogged = false;
+  const impressionKeys = new Set();
+  const recentRecommendationTimes = new Map();
+  let displayedRecommendations = null;
+  let displayedLibrarySize = -1;
+  let recommendationHistoryUser = null;
+  let recommendationHistoryLoading = null;
+  let recommendationHistoryLoadingUser = null;
 
   function trackKey(track) {
     if (!track) return '';
@@ -40,7 +55,7 @@
     return {
       moods: [...new Set([...toArray(track.moods), ...toArray(track.mood)])],
       activities: toArray(track.activity),
-      genres: toArray(track.genre),
+      genres: toArray(track.genres).concat(toArray(track.genre)),
       tags: toArray(track.tags),
       artists: toArray(track.artist),
     };
@@ -109,11 +124,14 @@
     entry.playCount = (entry.playCount || 0) + 1;
     entry.lastPlayed = Date.now();
     saveHistory(history);
+    displayedRecommendations = null;
     lastTrackKey = trackKey(track);
     lastPosition = 0;
     pendingSeconds = 0;
     lastFlushAt = Date.now();
     render();
+    void logImpression('home');
+    window.dispatchEvent?.(new Event('spotisix:recommendations-updated'));
   }
 
   function recordSkip(track, elapsedSeconds) {
@@ -211,6 +229,109 @@
     return trackKey(track);
   }
 
+  function artistKeys(track) {
+    return [...new Set(String(track?.artist || '')
+      .split(/\s*(?:,|&|\+|\bfeat(?:uring)?\.?\s*|\bft\.?\s*|\bx\s*|\bvà\b)\s*/i)
+      .map(normalize)
+      .filter(Boolean))];
+  }
+
+  function genreKeys(track) {
+    const explicitGenres = [...features(track).genres];
+    return [...new Set((explicitGenres.length ? explicitGenres : toArray(track?.tags)).map(normalize).filter(Boolean))];
+  }
+
+  function readRecommendationLog() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(recommendationLogKey()) || '{}');
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch (error) {
+      console.warn('SpotiSix không thể đọc lịch sử đề xuất trên trình duyệt.', error);
+      return {};
+    }
+  }
+
+  function saveRecommendationLog(log) {
+    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    for (const [key, timestamp] of Object.entries(log)) {
+      if (!Number.isFinite(Number(timestamp)) || Number(timestamp) < cutoff) delete log[key];
+    }
+    try {
+      localStorage.setItem(recommendationLogKey(), JSON.stringify(log));
+    } catch (error) {
+      console.warn('SpotiSix không thể lưu lịch sử đề xuất trên trình duyệt.', error);
+    }
+  }
+
+  function recentRecommendationTime(track) {
+    const key = recommendationTrackKey(track);
+    const localLog = readRecommendationLog();
+    const timestamp = Math.max(Number(localLog[key]) || 0, recentRecommendationTimes.get(key) || 0);
+    if (timestamp) recentRecommendationTimes.set(key, timestamp);
+    return timestamp;
+  }
+
+  function rememberRecommendations(ranked, timestamp = Date.now()) {
+    const log = readRecommendationLog();
+    ranked.forEach(({ track }) => {
+      const key = recommendationTrackKey(track);
+      if (!key) return;
+      log[key] = timestamp;
+      recentRecommendationTimes.set(key, timestamp);
+    });
+    saveRecommendationLog(log);
+  }
+
+  function applyDiversityFilter(ranked, options = {}) {
+    const limit = Math.max(0, Number(options.limit) || MAX_RECOMMENDATIONS);
+    const offset = Math.max(0, Number(options.offset) || 0);
+    const now = Number(options.now) || Date.now();
+    const unique = applyRepeatFilter(ranked);
+    const candidates = unique.map((item, index) => ({
+      ...item,
+      originalOrder: index,
+      recommendedAt: recentRecommendationTime(item.track),
+    }));
+    candidates.sort((a, b) =>
+      Number(a.recommendedAt > 0 && now - a.recommendedAt < RECOMMENDATION_COOLDOWN_MS) -
+        Number(b.recommendedAt > 0 && now - b.recommendedAt < RECOMMENDATION_COOLDOWN_MS) ||
+      ((a.recommendedAt > 0 && b.recommendedAt > 0) ? a.recommendedAt - b.recommendedAt : 0) ||
+      b.score - a.score ||
+      a.originalOrder - b.originalOrder
+    );
+
+    if (candidates.length > 1 && offset) {
+      const rotation = offset % candidates.length;
+      candidates.push(...candidates.splice(0, rotation));
+    }
+
+    const artistCounts = new Map();
+    const genreCounts = new Map();
+    const selected = [];
+    const canAdd = candidate => {
+      const artists = artistKeys(candidate.track);
+      const genres = genreKeys(candidate.track);
+      if (artists.some(artist => (artistCounts.get(artist) || 0) >= MAX_ARTIST_PER_SET)) return false;
+      if (genres.some(genre => (genreCounts.get(genre) || 0) >= MAX_GENRE_PER_SET)) return false;
+      return true;
+    };
+    const add = candidate => {
+      const artists = artistKeys(candidate.track);
+      const genres = genreKeys(candidate.track);
+      selected.push(candidate);
+      artists.forEach(artist => artistCounts.set(artist, (artistCounts.get(artist) || 0) + 1));
+      genres.forEach(genre => genreCounts.set(genre, (genreCounts.get(genre) || 0) + 1));
+    };
+    const passes = [
+      candidates.filter(candidate => !candidate.recommendedAt || now - candidate.recommendedAt >= RECOMMENDATION_COOLDOWN_MS),
+      candidates.filter(candidate => candidate.recommendedAt && now - candidate.recommendedAt < RECOMMENDATION_COOLDOWN_MS),
+    ];
+    passes.forEach(pass => pass.forEach(candidate => {
+      if (selected.length < limit && canAdd(candidate)) add(candidate);
+    }));
+    return selected.map(({ originalOrder, recommendedAt, ...item }) => item);
+  }
+
   // Danh sách đầu vào đã được xếp hạng; giữ bản xuất hiện đầu tiên
   // (tức bài có điểm/thứ hạng cao hơn) và loại các bản ghi trùng phía sau.
   function applyRepeatFilter(ranked) {
@@ -244,6 +365,10 @@
     if (entry.liked) score += 16;
     score -= Math.min(18, (Number(entry.skipCount) || 0) * 5);
     score -= Math.min(14, (Number(entry.playCount) || 0) * 3);
+    const lastPlayed = Number(entry.lastPlayed) || 0;
+    if (lastPlayed > 0 && Date.now() - lastPlayed < RECENT_PLAY_WINDOW_MS) {
+      score -= 18 * (1 - (Date.now() - lastPlayed) / RECENT_PLAY_WINDOW_MS);
+    }
     const allSongs = typeof window.getSpotiSixSongs === 'function' ? window.getSpotiSixSongs() : (Array.isArray(window.songs) ? window.songs : []);
     if (currentIndex >= 0 && track === allSongs[currentIndex]) score -= 1000;
     return score;
@@ -258,7 +383,7 @@
     const ranked = allSongs.map((track, index) => ({
       track, index, score: scoreTrack(track, history, preferences, currentIndex),
       played: Number(history[trackKey(track)]?.playCount) || 0,
-    }));
+    })).filter(item => item.index !== currentIndex);
     if (!hasHistory) {
       // Cold start: use community tracks with mood/activity labels first, then other tracks.
       ranked.sort((a, b) => {
@@ -276,18 +401,43 @@
     }
     // Lọc trùng sau khi xếp hạng để luôn giữ lại bản có thứ hạng cao nhất.
     const uniqueRanked = applyRepeatFilter(ranked);
-    const count = Math.min(8, uniqueRanked.length);
-    const start = uniqueRanked.length ? offset % uniqueRanked.length : 0;
-    const recommendations = Array.from({ length: count }, (_, index) =>
-      uniqueRanked[(start + index) % uniqueRanked.length]
-    );
+    const recommendations = applyDiversityFilter(uniqueRanked, { offset });
     return { ranked: recommendations, hasHistory, total: uniqueRanked.length };
+  }
+
+  function getDiverseIndices(indices, options = {}) {
+    const allSongs = typeof window.getSpotiSixSongs === 'function' ? window.getSpotiSixSongs() : [];
+    const history = readHistory();
+    const preferences = buildPreferences(history);
+    const currentIndex = typeof window.getSpotiSixCurrentIndex === 'function' ? window.getSpotiSixCurrentIndex() : -1;
+    const ranked = indices.map(index => ({
+      index,
+      track: allSongs[index],
+      score: scoreTrack(allSongs[index], history, preferences, currentIndex),
+    })).filter(item => item.track && item.index !== currentIndex);
+    return applyDiversityFilter(ranked, options).map(item => item.index);
+  }
+
+  function getDiverseRanked(ranked, options = {}) {
+    const currentIndex = typeof window.getSpotiSixCurrentIndex === 'function' ? window.getSpotiSixCurrentIndex() : -1;
+    const normalized = ranked
+      .filter(item => item.index !== currentIndex)
+      .map(item => item.track ? item : { ...item, track: item.song });
+    return applyDiversityFilter(normalized, options).map(({ track, ...item }) =>
+      Object.hasOwn(item, 'song') ? { ...item, song: track } : { ...item, track }
+    );
   }
 
   function render(options = {}) {
     const container = document.getElementById('spotisix-personal-recs');
     if (!container) return;
-    const { ranked, hasHistory } = getRecommendations(refreshOffset);
+    if (!displayedRecommendations || displayedLibrarySize !== (window.getSpotiSixSongs?.() || []).length) {
+      const current = getRecommendations(refreshOffset);
+      displayedRecommendations = current.ranked;
+      displayedLibrarySize = (window.getSpotiSixSongs?.() || []).length;
+    }
+    const { hasHistory } = getRecommendations(refreshOffset);
+    const ranked = displayedRecommendations;
     container.replaceChildren();
 
     const heading = document.createElement('div');
@@ -316,8 +466,8 @@
     const description = document.createElement('p');
     description.className = 'spotisix-recs-description';
     description.textContent = hasHistory
-      ? 'Đề xuất được xếp hạng từ lịch sử nghe, lượt thích và đặc điểm mood của bài hát.'
-      : 'Nghe và yêu thích nhạc để SpotiSix dần cá nhân hóa đề xuất cho bạn.';
+      ? 'Đề xuất dựa trên lịch sử nghe và lượt thích, có giới hạn lặp nghệ sĩ/thể loại và tránh gợi ý lại bài gần đây.'
+      : 'Nghe và yêu thích nhạc để SpotiSix cá nhân hóa đề xuất đa dạng hơn cho bạn.';
     container.appendChild(description);
 
     const row = document.createElement('div');
@@ -350,11 +500,17 @@
       why.textContent = mood ? `Mood: ${mood}` : activity ? `Hoạt động: ${activity}` : (hasHistory ? 'Theo sở thích nghe' : 'Khám phá nhạc');
       card.append(art, name, artist, why);
       card.addEventListener('click', () => {
+        void recordRecommendedPlay(track, 'home').catch(error =>
+          console.warn('Không thể lưu lượt phát từ đề xuất Home.', error)
+        );
         if (typeof window.playSong === 'function') window.playSong(index);
       });
       card.addEventListener('keydown', event => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
+          void recordRecommendedPlay(track, 'home').catch(error =>
+            console.warn('Không thể lưu lượt phát từ đề xuất Home.', error)
+          );
           if (typeof window.playSong === 'function') window.playSong(index);
         }
       });
@@ -369,7 +525,12 @@
     container.appendChild(row);
   }
 
-  async function logRecommendations(eventType, ranked) {
+  async function logRecommendations(eventType, ranked, source = 'home') {
+    const loggable = ['impression', 'refresh', 'play'].includes(eventType);
+    if (!loggable || !Array.isArray(ranked)) {
+      throw new Error(`Loại log đề xuất không hợp lệ: ${eventType}`);
+    }
+    rememberRecommendations(ranked);
     const client = typeof window.getSpotiSixSupabaseClient === 'function'
       ? window.getSpotiSixSupabaseClient()
       : null;
@@ -381,54 +542,141 @@
     if (!userId || data.session.access_token === 'demo-access-token') return false;
 
     const recommendations = ranked.map(({ track }) => ({
+      track_key: recommendationTrackKey(track),
       track_id: track.publishedTrackId || track.id || null,
       title: track.title || '',
       artist: track.artist || '',
+      genre: genreKeys(track),
     }));
     const { error } = await client.from('recommendation_logs').insert({
       user_id: userId,
       event_type: eventType,
-      source: 'home',
+      source,
       recommendations,
     });
     if (error) throw error;
     return true;
   }
 
-  async function refreshRecommendations() {
-    if (refreshInProgress) return;
+  async function refreshRecommendations(options = {}) {
+    if (refreshInProgress) return [];
+    const source = options.source || 'home';
     const currentRecommendations = getRecommendations(refreshOffset);
-    if (currentRecommendations.total > 0) {
-      const step = currentRecommendations.total > 8 ? 8 : 1;
-      refreshOffset = (refreshOffset + step) % currentRecommendations.total;
-    }
+    if (currentRecommendations.total > 1) refreshOffset = (refreshOffset + MAX_RECOMMENDATIONS) % currentRecommendations.total;
     refreshInProgress = true;
     statusMessage = '';
-    render({ loading: true });
+    if (source === 'home') render({ loading: true });
 
+    let refreshedRanked = [];
     try {
       const { ranked } = getRecommendations(refreshOffset);
-      await logRecommendations('refresh', ranked);
+      refreshedRanked = ranked;
+      displayedRecommendations = ranked;
+      displayedLibrarySize = (window.getSpotiSixSongs?.() || []).length;
+      await logRecommendations('refresh', ranked, source);
       statusMessage = 'Danh sách gợi ý đã được làm mới.';
     } catch (error) {
       console.warn('Không thể lưu nhật ký làm mới đề xuất lên Supabase.', error);
       statusMessage = 'Đã làm mới danh sách, nhưng chưa lưu được nhật ký đề xuất.';
     } finally {
       refreshInProgress = false;
-      render();
+      if (source === 'home') render();
     }
+    return refreshedRanked;
   }
 
-  async function logImpression() {
-    if (impressionLogged) return;
+  async function logImpression(source = 'home', tracks = null) {
+    const allSongs = typeof window.getSpotiSixSongs === 'function' ? window.getSpotiSixSongs() : [];
+    const ranked = Array.isArray(tracks)
+      ? tracks.map(trackOrIndex => {
+        const index = Number.isInteger(trackOrIndex) ? trackOrIndex : allSongs.indexOf(trackOrIndex);
+        const track = Number.isInteger(trackOrIndex) ? allSongs[trackOrIndex] : trackOrIndex;
+        return { track, index, score: 0 };
+      }).filter(item => item.track)
+      : displayedRecommendations || getRecommendations().ranked;
+    const signature = `${source}:${ranked.map(item => recommendationTrackKey(item.track)).join('|')}`;
+    if (!ranked.length || impressionKeys.has(signature)) return;
+    impressionKeys.add(signature);
     try {
-      const { ranked } = getRecommendations();
-      impressionLogged = await logRecommendations('impression', ranked);
+      await logRecommendations('impression', ranked, source);
     } catch (error) {
       console.warn('Không thể lưu nhật ký hiển thị đề xuất lên Supabase.', error);
       statusMessage = 'Không thể lưu nhật ký đề xuất lên máy chủ.';
-      render();
+      if (source === 'home') render();
     }
+  }
+
+  function recordRecommendedPlay(track, source = 'home') {
+    if (!track) return Promise.resolve(false);
+    return logRecommendations('play', [{ track, index: -1, score: 0 }], source);
+  }
+
+  async function loadRecommendationHistory() {
+    const client = typeof window.getSpotiSixSupabaseClient === 'function'
+      ? window.getSpotiSixSupabaseClient()
+      : null;
+    if (!client?.auth || typeof client.from !== 'function') return false;
+    const { data, error: sessionError } = await client.auth.getSession();
+    if (sessionError) throw sessionError;
+    const userId = data?.session?.user?.id;
+    if (!userId || data.session.access_token === 'demo-access-token') {
+      recommendationHistoryUser = null;
+      recentRecommendationTimes.clear();
+      impressionKeys.clear();
+      displayedRecommendations = null;
+      return false;
+    }
+    if (recommendationHistoryUser === userId) return true;
+    if (recommendationHistoryLoading && recommendationHistoryLoadingUser === userId) {
+      return recommendationHistoryLoading;
+    }
+    recentRecommendationTimes.clear();
+    impressionKeys.clear();
+    displayedRecommendations = null;
+    recommendationHistoryLoadingUser = userId;
+
+    recommendationHistoryLoading = (async () => {
+      const since = new Date(Date.now() - RECOMMENDATION_COOLDOWN_MS).toISOString();
+      const log = readRecommendationLog();
+      const pageSize = 100;
+      let offset = 0;
+      while (true) {
+        const { data: logs, error } = await client.from('recommendation_logs')
+          .select('created_at, recommendations')
+          .eq('user_id', userId)
+          .gte('created_at', since)
+          .order('created_at', { ascending: false })
+          .range(offset, offset + pageSize - 1);
+        if (error) throw error;
+        (logs || []).forEach(entry => {
+          const timestamp = new Date(entry.created_at).getTime();
+          if (!Number.isFinite(timestamp)) return;
+          (Array.isArray(entry.recommendations) ? entry.recommendations : []).forEach(track => {
+            const key = track.track_key || (track.title && track.artist
+              ? `song:${normalize(track.title)}::${normalize(track.artist)}`
+              : '');
+            if (!key) return;
+            log[key] = Math.max(Number(log[key]) || 0, timestamp);
+            recentRecommendationTimes.set(key, log[key]);
+          });
+        });
+        if (!logs || logs.length < pageSize) break;
+        offset += logs.length;
+      }
+      saveRecommendationLog(log);
+      recommendationHistoryUser = userId;
+      return true;
+    })();
+
+    try {
+      return await recommendationHistoryLoading;
+    } finally {
+      if (recommendationHistoryLoadingUser === userId) {
+        recommendationHistoryLoading = null;
+        recommendationHistoryLoadingUser = null;
+      }
+    }
+
   }
 
   function init() {
@@ -450,13 +698,20 @@
     init,
     render,
     logImpression,
+    logRecommendations,
+    recordRecommendedPlay,
+    loadRecommendationHistory,
+    refresh: refreshRecommendations,
+    getRecommendations,
+    getDiverseIndices,
+    getDiverseRanked,
     recordPlay,
     recordSkip,
     recordProgress,
     recordLike,
     flushProgress,
-    // Được công khai để kiểm thử Repeat Filter từ DevTools Console.
     applyRepeatFilter,
+    applyDiversityFilter,
   };
   window.addEventListener('beforeunload', () => {
     const allSongs = typeof window.getSpotiSixSongs === 'function' ? window.getSpotiSixSongs() : (Array.isArray(window.songs) ? window.songs : []);
