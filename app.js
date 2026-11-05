@@ -2351,6 +2351,7 @@ async function loadCommunityTracksOnStartup() {
       defaultPlaylists.forEach(pl => {
         pl.tracks = songs.map((_, i) => i);
       });
+      renderPlaylistCollections();
       renderActivePlaylist();
       renderLocalLibraryTracks();
       renderHomeDynamicSections();
@@ -2747,8 +2748,20 @@ function addPublishedTrackToPlayer(track) {
   const audioUrl = track.public_url || resolvePublishedTrackAudioUrl(track);
   const durationSeconds = Number(track.duration_seconds ?? track.duration ?? 0);
   const rawMoods = track.moods ?? track.mood ?? track.mood_text ?? '';
-  const moods = (Array.isArray(rawMoods) ? rawMoods : String(rawMoods).split(/[,;|]/))
-    .map(value => String(value).trim().toLowerCase())
+  let moodValues;
+  if (Array.isArray(rawMoods)) {
+    moodValues = rawMoods;
+  } else {
+    const moodText = String(rawMoods).trim();
+    try {
+      const parsedMoods = JSON.parse(moodText);
+      moodValues = Array.isArray(parsedMoods) ? parsedMoods : moodText.split(/[,;|]/);
+    } catch {
+      moodValues = moodText.split(/[,;|]/);
+    }
+  }
+  const moods = moodValues
+    .map(value => String(value).replace(/^[\s"'`\[\]]+|[\s"'`\[\]]+$/g, '').toLowerCase())
     .filter(Boolean)
     .map(value => value === 'bad' ? 'sad' : value);
   const index = songs.push({
