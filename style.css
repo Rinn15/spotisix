@@ -4908,6 +4908,15 @@ body.queue-hidden .queue-panel { display: none; }
   font-size: 0.86rem;
   line-height: 1.5;
 }
+.spotisix-recs-status {
+  margin: -6px 0 12px;
+  color: var(--text-muted, #9ca3af);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+.spotisix-recs-status[hidden] {
+  display: none;
+}
 .spotisix-recs-row {
   gap: 16px;
 }
@@ -5006,6 +5015,10 @@ body.queue-hidden .queue-panel { display: none; }
   color: #fff;
   border-color: var(--sp-green);
   background: rgba(30, 215, 96, .1);
+}
+.spotisix-refresh-btn:disabled {
+  cursor: wait;
+  opacity: .7;
 }
 @media (max-width: 640px) {
   .spotisix-personal-recs-section .section-title-row {

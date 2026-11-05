@@ -2962,6 +2962,7 @@ function setAuthSession(session) {
   const nearbyName = session?.user?.user_metadata?.display_name || session?.user?.email?.split('@')[0] || '';
   window.setNearbyIdentity?.(nearbyName);
   window.getNearbySupabaseClient = () => supabaseClient;
+  window.getSpotiSixSupabaseClient = () => supabaseClient;
   const authScreen = document.getElementById('auth-screen');
   if (!authenticated) {
     authScreen?.classList.remove('hidden');
@@ -2986,7 +2987,10 @@ function setAuthSession(session) {
     document.getElementById('account-email').textContent = session.user.email || 'Tài khoản SpotiSix';
     setAuthStatus('');
   }
-  if (window.SpotisixRecommendations) window.SpotisixRecommendations.render();
+  if (window.SpotisixRecommendations) {
+    window.SpotisixRecommendations.render();
+    if (authenticated) void window.SpotisixRecommendations.logImpression();
+  }
 }
 
 function authEmailRedirectUrl() {

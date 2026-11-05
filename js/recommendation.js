@@ -13,6 +13,10 @@
   let lastPosition = null;
   let pendingSeconds = 0;
   let lastFlushAt = 0;
+  let refreshOffset = 0;
+  let refreshInProgress = false;
+  let statusMessage = '';
+  let impressionLogged = false;
 
   function trackKey(track) {
     if (!track) return '';
@@ -245,7 +249,7 @@
     return score;
   }
 
-  function getRecommendations() {
+  function getRecommendations(offset = 0) {
     const allSongs = typeof window.getSpotiSixSongs === 'function' ? window.getSpotiSixSongs() : (Array.isArray(window.songs) ? window.songs : []);
     const currentIndex = typeof window.getSpotiSixCurrentIndex === 'function' ? window.getSpotiSixCurrentIndex() : -1;
     const history = readHistory();
@@ -271,28 +275,43 @@
       );
     }
     // Lọc trùng sau khi xếp hạng để luôn giữ lại bản có thứ hạng cao nhất.
-    // Chỉ lấy 8 bài sau khi lọc, nhờ vậy các bài đứng sau có thể bù vào vị trí trùng.
     const uniqueRanked = applyRepeatFilter(ranked);
-    return { ranked: uniqueRanked.slice(0, 8), hasHistory };
+    const count = Math.min(8, uniqueRanked.length);
+    const start = uniqueRanked.length ? offset % uniqueRanked.length : 0;
+    const recommendations = Array.from({ length: count }, (_, index) =>
+      uniqueRanked[(start + index) % uniqueRanked.length]
+    );
+    return { ranked: recommendations, hasHistory, total: uniqueRanked.length };
   }
 
-  function render() {
+  function render(options = {}) {
     const container = document.getElementById('spotisix-personal-recs');
     if (!container) return;
-    const { ranked, hasHistory } = getRecommendations();
+    const { ranked, hasHistory } = getRecommendations(refreshOffset);
     container.replaceChildren();
 
     const heading = document.createElement('div');
     heading.className = 'section-title-row';
     const title = document.createElement('h2');
-    title.textContent = 'Dành riêng cho bạn';
+    title.textContent = 'Khám phá mới';
     const refresh = document.createElement('button');
     refresh.type = 'button';
-    refresh.className = 'see-all-btn';
-    refresh.textContent = 'Làm mới';
-    refresh.addEventListener('click', render);
+    refresh.className = 'see-all-btn spotisix-refresh-btn';
+    refresh.textContent = refreshInProgress ? 'Đang làm mới…' : '⟳ Làm mới';
+    refresh.disabled = refreshInProgress;
+    refresh.setAttribute('aria-label', 'Làm mới danh sách gợi ý');
+    refresh.addEventListener('click', refreshRecommendations);
     heading.append(title, refresh);
     container.appendChild(heading);
+
+    const status = document.createElement('p');
+    status.className = 'spotisix-recs-status';
+    status.setAttribute('role', 'status');
+    status.setAttribute('aria-live', 'polite');
+    status.textContent = options.loading ? 'Đang làm mới danh sách gợi ý…' : statusMessage;
+    status.hidden = !status.textContent;
+    container.setAttribute('aria-busy', String(Boolean(options.loading)));
+    container.appendChild(status);
 
     const description = document.createElement('p');
     description.className = 'spotisix-recs-description';
@@ -341,7 +360,75 @@
       });
       row.appendChild(card);
     });
+    if (ranked.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'home-recent-empty';
+      empty.textContent = 'Chưa có bài hát để gợi ý. Hãy quay lại sau khi thư viện được tải.';
+      row.appendChild(empty);
+    }
     container.appendChild(row);
+  }
+
+  async function logRecommendations(eventType, ranked) {
+    const client = typeof window.getSpotiSixSupabaseClient === 'function'
+      ? window.getSpotiSixSupabaseClient()
+      : null;
+    if (!client?.auth || typeof client.from !== 'function') return false;
+
+    const { data, error: sessionError } = await client.auth.getSession();
+    if (sessionError) throw sessionError;
+    const userId = data?.session?.user?.id;
+    if (!userId || data.session.access_token === 'demo-access-token') return false;
+
+    const recommendations = ranked.map(({ track }) => ({
+      track_id: track.publishedTrackId || track.id || null,
+      title: track.title || '',
+      artist: track.artist || '',
+    }));
+    const { error } = await client.from('recommendation_logs').insert({
+      user_id: userId,
+      event_type: eventType,
+      source: 'home',
+      recommendations,
+    });
+    if (error) throw error;
+    return true;
+  }
+
+  async function refreshRecommendations() {
+    if (refreshInProgress) return;
+    const currentRecommendations = getRecommendations(refreshOffset);
+    if (currentRecommendations.total > 0) {
+      const step = currentRecommendations.total > 8 ? 8 : 1;
+      refreshOffset = (refreshOffset + step) % currentRecommendations.total;
+    }
+    refreshInProgress = true;
+    statusMessage = '';
+    render({ loading: true });
+
+    try {
+      const { ranked } = getRecommendations(refreshOffset);
+      await logRecommendations('refresh', ranked);
+      statusMessage = 'Danh sách gợi ý đã được làm mới.';
+    } catch (error) {
+      console.warn('Không thể lưu nhật ký làm mới đề xuất lên Supabase.', error);
+      statusMessage = 'Đã làm mới danh sách, nhưng chưa lưu được nhật ký đề xuất.';
+    } finally {
+      refreshInProgress = false;
+      render();
+    }
+  }
+
+  async function logImpression() {
+    if (impressionLogged) return;
+    try {
+      const { ranked } = getRecommendations();
+      impressionLogged = await logRecommendations('impression', ranked);
+    } catch (error) {
+      console.warn('Không thể lưu nhật ký hiển thị đề xuất lên Supabase.', error);
+      statusMessage = 'Không thể lưu nhật ký đề xuất lên máy chủ.';
+      render();
+    }
   }
 
   function init() {
@@ -356,11 +443,13 @@
       else home.prepend(section);
     }
     render();
+    void logImpression();
   }
 
   window.SpotisixRecommendations = {
     init,
     render,
+    logImpression,
     recordPlay,
     recordSkip,
     recordProgress,
