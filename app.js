@@ -2189,34 +2189,64 @@ function renderLocalLibraryTracks() {
   filterLibraryItems(librarySearchQuery);
 }
 
+
+function renderHomeFeaturedTracks() {
+  const container = document.getElementById('home-featured-tracks');
+  if (!container) return;
+
+  container.replaceChildren();
+  const recentTracks = recentSongIds
+    .map(index => ({ song: songs[index], index }))
+    .filter(item => item.song)
+    .slice(0, 10);
+
+  if (recentTracks.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'home-recent-empty';
+    empty.textContent = 'Những bài hát bạn phát sẽ xuất hiện tại đây.';
+    container.appendChild(empty);
+    return;
+  }
+
+  recentTracks.forEach(({ song, index }) => {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'album-card home-replay-card';
+    card.setAttribute('aria-label', `Phát lại ${song.title || 'bài hát'} của ${song.artist || 'nghệ sĩ chưa rõ'}`);
+
+    const art = document.createElement('span');
+    art.className = 'album-card-art';
+    const image = document.createElement('img');
+    image.src = song.img || 'quan-son-tu.jpg';
+    image.alt = song.album || song.title || 'Ảnh bìa bài hát';
+    const overlay = document.createElement('span');
+    overlay.className = 'album-card-overlay';
+    const play = document.createElement('span');
+    play.className = 'play-overlay-btn';
+    play.setAttribute('aria-hidden', 'true');
+    play.textContent = '▶';
+    overlay.appendChild(play);
+    art.append(image, overlay);
+
+    const title = document.createElement('span');
+    title.className = 'album-card-title';
+    title.textContent = song.title || 'Bài hát không tên';
+    const artist = document.createElement('span');
+    artist.className = 'album-card-sub';
+    artist.textContent = song.artist || 'Không rõ nghệ sĩ';
+
+    card.append(art, title, artist);
+    card.addEventListener('click', () => playSong(index));
+    container.appendChild(card);
+  });
+}
+
 function renderHomeDynamicSections() {
   const featuredContainer = document.getElementById('home-featured-tracks');
   const mixContainer = document.getElementById('home-mix-cards');
   const recentContainer = document.getElementById('home-recent-tracks');
 
-  if (featuredContainer) {
-    featuredContainer.replaceChildren();
-    songs.slice(0, 10).forEach((song, idx) => {
-      const card = document.createElement('div');
-      card.className = 'album-card';
-      card.setAttribute('role', 'button');
-      card.setAttribute('tabindex', '0');
-      card.onclick = () => playSong(idx);
-      card.innerHTML = `
-        <div class="album-card-art">
-          <img src="${song.img || 'quan-son-tu.jpg'}" alt="${song.album || song.title}"/>
-          <div class="album-card-overlay">
-            <button class="play-overlay-btn" type="button" aria-label="Phát ${song.title}">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-            </button>
-          </div>
-        </div>
-        <p class="album-card-title">${song.title}</p>
-        <p class="album-card-sub">${song.artist}</p>
-      `;
-      featuredContainer.appendChild(card);
-    });
-  }
+  if (featuredContainer) renderHomeFeaturedTracks();
 
   if (mixContainer) {
     mixContainer.replaceChildren();
@@ -3264,7 +3294,8 @@ function recordRecentSong(index) {
   if (privateSession) return;
   recentSongIds = [index, ...recentSongIds.filter(songIndex => songIndex !== index)].slice(0, 20);
   localStorage.setItem(recentSongsKey, JSON.stringify(recentSongIds));
-  if (document.getElementById('view-recent').classList.contains('active')) renderRecentHistory();
+  renderHomeFeaturedTracks();
+  if (document.getElementById('view-recent')?.classList.contains('active')) renderRecentHistory();
 }
 
 function renderRecentHistory() {
