@@ -376,8 +376,6 @@
             <button class="home-filter-chip active" type="button">Tất cả</button>
             <button class="home-filter-chip" id="chip-mood" type="button" onclick="selectMoodFilter()">Tâm
               trạng</button>
-            <button class="home-filter-chip smart-filter-chip" id="chip-smart-pref" type="button"
-              onclick="openSmartPreferenceControl()"><span class="chip-sparkle">✨</span> Sở thích thông minh</button>
             <button class="home-filter-chip" type="button"
               onclick="showView('library');switchLibTab('songs')">Nhạc</button>
             <button class="home-filter-chip" type="button"
@@ -945,15 +943,6 @@
             <div class="volume-fill" id="volume-fill" style="width:70%"></div>
           </div>
         </div>
-        <button class="ctrl-btn-sm karaoke-player-button" id="karaoke-toggle" type="button" aria-label="Hát karaoke"
-          title="Nhập tệp nhạc để bật karaoke" aria-pressed="false" disabled onclick="toggleKaraoke()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-            <path d="M9 18V5l12-2v13" />
-            <circle cx="6" cy="18" r="3" />
-            <circle cx="18" cy="16" r="3" />
-            <path d="M9 8l12-2" />
-          </svg>
-        </button>
         <button class="ctrl-btn-sm lyrics-player-button" id="lyrics-toggle" type="button" aria-label="Mở lời bài hát"
           title="Lời bài hát" onclick="toggleLyrics(event)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
@@ -963,7 +952,7 @@
       </div>
     </div>
   </div>
-  <audio id="audio-player" preload="metadata" crossorigin="anonymous"></audio>
+  <audio id="audio-player" preload="auto" crossorigin="anonymous"></audio>
 
   <!-- ══════════════════════ NOW PLAYING DETAIL ══════════════════════ -->
   <!-- ══════════════════════ NOW PLAYING DETAIL ══════════════════════ -->
@@ -979,7 +968,7 @@
         <span>Đang phát</span>
       </button>
 
-      <!-- Mode switcher: Bìa nhạc / Lời bài hát / Hát karaoke -->
+      <!-- Mode switcher: Bìa nhạc / Lời bài hát -->
       <div class="expanded-mode-switch" id="expanded-mode-switch" role="tablist" aria-label="Chế độ hiển thị">
         <button type="button" class="exp-mode-tab active" id="exp-tab-art" role="tab" aria-selected="true"
           onclick="setExpandedViewMode('art')">
@@ -997,15 +986,6 @@
             <circle cx="18" cy="16" r="3" />
           </svg>
           <span>Lời bài hát</span>
-        </button>
-        <button type="button" class="exp-mode-tab" id="exp-tab-karaoke" role="tab" aria-selected="false"
-          onclick="setExpandedViewMode('karaoke')">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
-            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-            <line x1="12" y1="19" x2="12" y2="22" />
-          </svg>
-          <span>Hát karaoke</span>
         </button>
       </div>
 
@@ -1031,22 +1011,6 @@
               bộ</span>
             <p class="exp-lyrics-sub" id="exp-lyrics-sub">Nhấn vào câu bất kỳ để phát đoạn đó</p>
           </div>
-          <!-- Karaoke Vocal Adjuster Panel -->
-          <div class="exp-karaoke-panel hidden" id="exp-karaoke-panel">
-            <div class="exp-vocal-row">
-              <span class="exp-vocal-label"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
-                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                  <line x1="12" y1="19" x2="12" y2="22" stroke="currentColor" stroke-width="2" />
-                </svg> Giọng ca sĩ:</span>
-              <div class="exp-vocal-slider-wrap">
-                <input type="range" min="0" max="100" value="100" step="1" id="exp-vocal-slider"
-                  class="exp-vocal-slider" oninput="handleExpVocalSliderChange(this.value)">
-                <span class="exp-vocal-val" id="exp-vocal-val">100%</span>
-              </div>
-            </div>
-            <span class="exp-karaoke-hint">Kéo về 0% để tắt hoàn toàn giọng hát và hát trên beat</span>
-          </div>
         </div>
         <div class="exp-lyrics-viewport" id="exp-lyrics-viewport">
           <div class="exp-lyrics-lines" id="exp-lyrics-lines">
@@ -1055,7 +1019,7 @@
         </div>
       </div>
 
-      <!-- Artwork Section (Shifts/shrinks to the right when lyrics/karaoke is on) -->
+      <!-- Artwork Section -->
       <div class="expanded-art-section" id="expanded-art-section">
         <div class="expanded-art-main" id="expanded-art-main">
           <img src="quan-son-tu.jpg" alt="Now playing" class="expanded-art-img" id="expanded-art-img" />
@@ -1119,14 +1083,6 @@
               <circle cx="18" cy="16" r="3" />
             </svg>
           </button>
-          <button class="exp-ctrl-btn exp-mode-quick-btn" id="exp-karaoke-quick-btn" onclick="toggleExpandedKaraoke()"
-            title="Chế độ Karaoke">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
-              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-              <line x1="12" y1="19" x2="12" y2="22" />
-            </svg>
-          </button>
         </div>
         <div class="expanded-volume">
           <svg viewBox="0 0 24 24" fill="currentColor" width="18">
@@ -1151,21 +1107,8 @@
       </div>
     </div>
   </div>
-  <dialog class="karaoke-dialog" id="karaoke-dialog" aria-labelledby="karaoke-title">
-    <header class="karaoke-dialog-header">
-      <div><span class="eyebrow">SPOTISIX · KARAOKE</span>
-        <h2 id="karaoke-title">Hát karaoke</h2>
-      </div>
-      <button class="dialog-close" type="button" onclick="closeKaraokeDialog()" aria-label="Đóng">×</button>
-    </header>
-    <label class="karaoke-vocal-label" for="karaoke-vocal">Âm lượng vocal <span
-        id="karaoke-vocal-value">100%</span></label>
-    <input id="karaoke-vocal" type="range" min="0" max="100" value="100" step="1" disabled>
-    <p class="karaoke-status" id="karaoke-status" role="status" aria-live="polite">Chọn một tệp nhạc để bật karaoke.</p>
-    <div class="karaoke-lyrics" id="karaoke-lyrics" aria-live="polite">Lyrics sẽ hiển thị tại đây.</div>
-  </dialog>
   <dialog class="lyrics-dialog" id="lyrics-dialog" aria-labelledby="lyrics-title">
-    <header class="karaoke-dialog-header">
+    <header class="lyrics-dialog-header">
       <div><span class="eyebrow">SPOTISIX · LYRICS</span>
         <h2 id="lyrics-title">Lời bài hát</h2>
         <p class="lyrics-track-label" id="lyrics-track-label"></p>
@@ -1244,168 +1187,12 @@
     </div>
   </div>
 
-  <!-- ══════════════════════ SMART PREFERENCE FILTER MODAL ══════════════════════ -->
-  <dialog class="smart-pref-modal" id="smart-preference-modal" aria-labelledby="smart-pref-title">
-    <div class="smart-pref-backdrop" onclick="closeSmartPreferenceControl()"></div>
-    <div class="smart-pref-container">
-      <header class="smart-pref-header">
-        <div class="smart-pref-title-group">
-          <span class="smart-pref-badge"><span class="badge-sparkle">✨</span> AI Smart Taste Filter</span>
-          <h2 id="smart-pref-title">Bộ lọc sở thích thông minh</h2>
-          <p class="smart-pref-desc">Phối nhạc cá nhân hóa theo tâm trạng, hoạt động và phong cách bạn muốn nghe</p>
-        </div>
-        <button class="dialog-close smart-dialog-close" type="button" onclick="closeSmartPreferenceControl()"
-          aria-label="Đóng">✕</button>
-      </header>
-
-      <div class="smart-pref-body">
-        <!-- Section 1: Mood & Vibe -->
-        <div class="smart-pref-section">
-          <div class="smart-section-label">
-            <span class="smart-step-num">1</span>
-            <strong>Tâm trạng của bạn (Mood & Vibe)</strong>
-            <small>Chọn tâm trạng bạn muốn đắm chìm vào</small>
-          </div>
-          <div class="smart-mood-grid" id="smart-mood-grid">
-            <button type="button" class="smart-mood-card active" data-mood="chill" onclick="toggleSmartMood(this)">
-              <span class="sm-card-icon">🍃</span>
-              <span class="sm-card-name">Chill & Thư giãn</span>
-            </button>
-            <button type="button" class="smart-mood-card" data-mood="focus" onclick="toggleSmartMood(this)">
-              <span class="sm-card-icon">🎧</span>
-              <span class="sm-card-name">Tập trung làm việc</span>
-            </button>
-            <button type="button" class="smart-mood-card" data-mood="energy" onclick="toggleSmartMood(this)">
-              <span class="sm-card-icon">⚡</span>
-              <span class="sm-card-name">Năng lượng hứng khởi</span>
-            </button>
-            <button type="button" class="smart-mood-card" data-mood="sad" onclick="toggleSmartMood(this)">
-              <span class="sm-card-icon">🌧️</span>
-              <span class="sm-card-name">Tâm trạng & Suy tư</span>
-            </button>
-            <button type="button" class="smart-mood-card" data-mood="romantic" onclick="toggleSmartMood(this)">
-              <span class="sm-card-icon">💖</span>
-              <span class="sm-card-name">Lãng mạn ngọt ngào</span>
-            </button>
-            <button type="button" class="smart-mood-card" data-mood="workout" onclick="toggleSmartMood(this)">
-              <span class="sm-card-icon">🔥</span>
-              <span class="sm-card-name">Tập gym & Bứt phá</span>
-            </button>
-            <button type="button" class="smart-mood-card" data-mood="sleep" onclick="toggleSmartMood(this)">
-              <span class="sm-card-icon">🌙</span>
-              <span class="sm-card-name">Đêm muộn & Ngủ</span>
-            </button>
-            <button type="button" class="smart-mood-card" data-mood="party" onclick="toggleSmartMood(this)">
-              <span class="sm-card-icon">🪩</span>
-              <span class="sm-card-name">Tiệc tùng sôi động</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Section 2: Activity -->
-        <div class="smart-pref-section">
-          <div class="smart-section-label">
-            <span class="smart-step-num">2</span>
-            <strong>Hoạt động đang làm (Activity)</strong>
-            <small>Tối ưu nhịp độ theo bối cảnh</small>
-          </div>
-          <div class="smart-activity-chips" id="smart-activity-chips">
-            <button type="button" class="smart-chip-pill active" data-activity="Học tập"
-              onclick="toggleSmartActivity(this)">💻 Học tập & Làm việc</button>
-            <button type="button" class="smart-chip-pill" data-activity="Thể thao"
-              onclick="toggleSmartActivity(this)">🏋️ Thể thao & Chạy bộ</button>
-            <button type="button" class="smart-chip-pill" data-activity="Cà phê" onclick="toggleSmartActivity(this)">☕
-              Cà phê & Dạo phố</button>
-            <button type="button" class="smart-chip-pill" data-activity="Lái xe" onclick="toggleSmartActivity(this)">🚗
-              Lái xe / Đi đường</button>
-            <button type="button" class="smart-chip-pill" data-activity="Thư giãn"
-              onclick="toggleSmartActivity(this)">🛋️ Thư giãn tại nhà</button>
-            <button type="button" class="smart-chip-pill" data-activity="Ngủ" onclick="toggleSmartActivity(this)">💤
-              Chuẩn bị đi ngủ</button>
-            <button type="button" class="smart-chip-pill" data-activity="Gaming" onclick="toggleSmartActivity(this)">🎮
-              Chơi game</button>
-          </div>
-        </div>
-
-        <!-- Section 3: Genre & Tags -->
-        <div class="smart-pref-section">
-          <div class="smart-section-label">
-            <span class="smart-step-num">3</span>
-            <strong>Thể loại âm nhạc (Genres)</strong>
-            <small>Chọn phong cách bạn yêu thích</small>
-          </div>
-          <div class="smart-genre-chips" id="smart-genre-chips">
-            <button type="button" class="smart-genre-pill active" data-genre="indie"
-              onclick="toggleSmartGenre(this)">Indie Việt</button>
-            <button type="button" class="smart-genre-pill active" data-genre="acoustic"
-              onclick="toggleSmartGenre(this)">Acoustic</button>
-            <button type="button" class="smart-genre-pill" data-genre="lofi" onclick="toggleSmartGenre(this)">Lofi
-              Chill</button>
-            <button type="button" class="smart-genre-pill" data-genre="ballad" onclick="toggleSmartGenre(this)">Ballad /
-              Pop</button>
-            <button type="button" class="smart-genre-pill" data-genre="rap" onclick="toggleSmartGenre(this)">Rap /
-              HipHop</button>
-            <button type="button" class="smart-genre-pill" data-genre="r&b" onclick="toggleSmartGenre(this)">R&B
-              Soul</button>
-            <button type="button" class="smart-genre-pill" data-genre="edm" onclick="toggleSmartGenre(this)">EDM /
-              Remix</button>
-            <button type="button" class="smart-genre-pill" data-genre="ambient" onclick="toggleSmartGenre(this)">Ambient
-              / Thiền</button>
-          </div>
-        </div>
-
-        <!-- Section 4: Tempo & Energy Level -->
-        <div class="smart-pref-section">
-          <div class="smart-section-label">
-            <span class="smart-step-num">4</span>
-            <strong>Nhịp độ & Năng lượng</strong>
-            <span class="smart-tempo-tag" id="smart-tempo-tag">⚖️ Cân bằng vừa phải</span>
-          </div>
-          <div class="smart-tempo-slider-wrap">
-            <input type="range" min="1" max="3" value="2" step="1" id="smart-tempo-range" class="smart-tempo-range"
-              oninput="updateSmartTempo(this.value)">
-            <div class="smart-tempo-scale">
-              <span>🍃 Êm dịu & Sâu lắng</span>
-              <span>⚖️ Cân bằng vừa vặn</span>
-              <span>⚡ Sôi động & Bứt phá</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Live Match Bar -->
-        <div class="smart-match-bar">
-          <div class="smart-match-badge">
-            <span class="match-spark">🎯</span>
-            <div class="match-text">
-              <strong id="smart-match-count">Tìm thấy 3 bài hát phù hợp</strong>
-              <small>Độ tương thích sở thích: <span id="smart-match-pct">98%</span></small>
-            </div>
-          </div>
-          <div class="smart-match-list-preview" id="smart-match-preview"></div>
-        </div>
-      </div>
-
-      <footer class="smart-pref-footer">
-        <button type="button" class="smart-btn-secondary" onclick="resetSmartPreferences()">Đặt lại</button>
-        <button type="button" class="smart-btn-save-pl" onclick="saveSmartPreferenceToPlaylist()">Lưu thành
-          Playlist</button>
-        <button type="button" class="smart-btn-primary" onclick="applyAndPlaySmartMix()">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-            <path d="M8 5v14l11-7z" />
-          </svg>
-          <span>Áp dụng & Phát ngay</span>
-        </button>
-      </footer>
-    </div>
-  </dialog>
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js" vite-ignore></script>
   <script src="js/recommendation.js" vite-ignore></script>
   <script src="app.js" vite-ignore></script>
   <script type="module" src="nearby.js"></script>
   <script type="module" src="shared-listening.js"></script>
-  <script type="module" src="karaoke.js"></script>
   <script src="js/player.js" vite-ignore></script>
 </body>
 

@@ -736,8 +736,10 @@ img { display: block; max-width: 100%; }
   box-shadow: 0 24px 80px rgba(0,0,0,.55);
 }
 .karaoke-dialog::backdrop { background: rgba(0,0,0,.72); backdrop-filter: blur(5px); }
-.karaoke-dialog-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
-.karaoke-dialog-header h2 { margin-top: 8px; font-size: 22px; }
+.karaoke-dialog-header,
+.lyrics-dialog-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+.karaoke-dialog-header h2,
+.lyrics-dialog-header h2 { margin-top: 8px; font-size: 22px; }
 .karaoke-dialog .karaoke-vocal-label { margin-top: 18px; }
 .karaoke-vocal-label { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; font-weight: 600; }
 .karaoke-dialog input[type="range"] { width: 100%; margin: 14px 0; accent-color: var(--sp-green); }
@@ -762,7 +764,7 @@ img { display: block; max-width: 100%; }
 }
 .lyrics-dialog::backdrop { background: rgba(0,0,0,.72); backdrop-filter: blur(5px); }
 .lyrics-dialog[open] { display: flex; flex-direction: column; }
-.lyrics-dialog .karaoke-dialog-header { flex: 0 0 auto; margin-bottom: 12px; }
+.lyrics-dialog .lyrics-dialog-header { flex: 0 0 auto; margin-bottom: 12px; }
 .lyrics-track-label { margin-top: 6px; color: var(--text-secondary); font-size: 13px; }
 .lyrics-status { flex: 0 0 auto; color: var(--text-secondary); font-size: 12px; }
 .lyrics-lines { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 40px 10px; text-align: center; scrollbar-width: thin; }

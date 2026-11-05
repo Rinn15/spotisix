@@ -46,10 +46,6 @@ window.inviteForSharedListening = async function inviteForSharedListening(target
     showAppToast('Bật tìm kiếm online trước khi mời người nghe chung.');
     return;
   }
-  if (window.isKaraokeActive?.()) {
-    showAppToast('Tắt karaoke trước khi mời nghe chung.');
-    return;
-  }
   const isAlreadyInRoom = Boolean(roomChannel && roomId && roomRole);
   if (!isAlreadyInRoom && !getHostAudioStream()) return;
 

@@ -18,7 +18,7 @@ let songs = [
     audioSrc: './music/Quan Sơn Tửu.mp3',
     lrc: './music/Quan Sơn Tửu.lrc',
     mood: 'chill',
-    moods: ['chill', 'relaxing', 'sleep'],
+    moods: ['chill', 'relaxing', 'focus'],
     tags: ['#Chill', '#Ambient']
   }
 ];
@@ -98,51 +98,6 @@ const moodDefinitions = [
     tags: ['Tất cả', 'Acoustic', 'Ballad', 'Duet'],
     trackIndices: [9, 14, 0, 6, 4]
   },
-  {
-    id: 'workout',
-    name: 'Tập luyện & Bứt phá',
-    englishName: 'Workout & Fitness',
-    emoji: '🔥',
-    iconSvg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>',
-    badge: 'BPM 130-155 · Beast Mode',
-    tagline: 'Đẩy nhịp tim tối đa, bứt phá mọi giới hạn thể lực',
-    description: 'Bassline căng tràn, nhịp beat dồn dập kích thích adrenaline bùng nổ cho mỗi rep tập của bạn.',
-    gradient: 'linear-gradient(135deg, #4a0000 0%, #8e0e00 50%, #1f1c18 100%)',
-    accent: '#ff3366',
-    glow: 'rgba(255, 51, 102, 0.45)',
-    tags: ['Tất cả', 'Cardio', 'Heavy Bass', 'High BPM'],
-    trackIndices: [10, 15, 3, 8, 17]
-  },
-  {
-    id: 'sleep',
-    name: 'Đêm muộn & Giấc ngủ',
-    englishName: 'Sleep & Night Ambient',
-    emoji: '🌙',
-    iconSvg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>',
-    badge: 'BPM 50-60 · Ru ngủ',
-    tagline: 'Âm thanh êm dịu đưa bạn vào giấc ngủ sâu thư thái',
-    description: 'Không gian âm thanh êm ái kết hợp tiếng suối, gió đêm và sóng alpha nâng niu giấc ngủ của bạn.',
-    gradient: 'linear-gradient(135deg, #070913 0%, #171c35 50%, #2f2a5e 100%)',
-    accent: '#93c5fd',
-    glow: 'rgba(147, 197, 253, 0.3)',
-    tags: ['Tất cả', 'Sóng Alpha', 'Tiếng Mưa', 'Thiền Định'],
-    trackIndices: [11, 16, 1, 7, 0]
-  },
-  {
-    id: 'party',
-    name: 'Tiệc tùng & Sôi động',
-    englishName: 'Party & Dance Club',
-    emoji: '🪩',
-    iconSvg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>',
-    badge: 'BPM 128-140 · Sàn nhảy',
-    tagline: 'Bật nhạc căng đét, biến căn phòng thành lễ hội',
-    description: 'House, EDM festival và dance pop bùng nổ cuốn bạn cùng bạn bè vào những bước nhảy không dứt.',
-    gradient: 'linear-gradient(135deg, #3a0058 0%, #7b1fa2 50%, #f06292 100%)',
-    accent: '#f43f5e',
-    glow: 'rgba(244, 63, 94, 0.4)',
-    tags: ['Tất cả', 'EDM', 'Club House', 'Festival'],
-    trackIndices: [12, 17, 3, 10, 8]
-  }
 ];
 
 let activeMoodId = 'chill';
@@ -298,9 +253,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (audioPlayer && songs[state.currentSong]?.audioSrc) {
     audioPlayer.src = songs[state.currentSong].audioSrc;
   }
-  window.setKaraokeMuted = muted => {
-    audioPlayer.volume = muted || state.isMuted ? 0 : state.volume;
-  };
   audioPlayer.addEventListener('timeupdate', updateNativeAudioProgress);
   audioPlayer.addEventListener('loadedmetadata', updateNativeAudioDuration);
   audioPlayer.addEventListener('ended', handleNativeAudioEnded);
@@ -428,20 +380,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 //  MOOD SELECTOR & RECOMMENDED SONGS LOGIC
 // ═══════════════════════════════════════════════════════════════════
 
-function getSmartDefaultMood() {
-  const h = new Date().getHours();
-  if (h >= 5 && h < 11) return 'energy';
-  if (h >= 11 && h < 17) return 'focus';
-  if (h >= 17 && h < 22) return 'chill';
-  return 'sleep';
-}
-
 function initializeMoodFeatures() {
   const savedMood = localStorage.getItem('spotisix.activeMood');
   if (savedMood && moodDefinitions.some(m => m.id === savedMood)) {
     activeMoodId = savedMood;
   } else {
-    activeMoodId = getSmartDefaultMood();
+    activeMoodId = 'chill';
   }
   renderHomeMoodSelector();
   renderMoodRecommendations(activeMoodId);
@@ -3510,11 +3454,11 @@ function playSong(idx) {
   if (window.SpotisixRecommendations) window.SpotisixRecommendations.recordPlay(songs[idx]);
   state.elapsed = 0;
   state.progress = 0;
+  startTimer();
   updatePlayerUI();
   window.dispatchEvent(new CustomEvent('spotisix:track-change', {
     detail: { ...songs[idx] },
   }));
-  startTimer();
   updateTrackHighlight();
   buildUpNext();
   recordRecentSong(idx);
@@ -3571,7 +3515,7 @@ function startTimer() {
   const song = songs[state.currentSong];
   if (song.audioSrc && audioPlayer) {
     audioPlayer.src = song.audioSrc;
-    audioPlayer.volume = window.isKaraokeActive?.() || state.isMuted ? 0 : state.volume;
+    audioPlayer.volume = state.isMuted ? 0 : state.volume;
     audioPlayer.currentTime = 0;
     audioPlayer.play().catch(error => {
       state.isPlaying = false;
@@ -3772,7 +3716,7 @@ function setVolumeFromPointer(event) {
   state.volume = frac;
   state.previousVolume = frac || state.previousVolume;
   state.isMuted = frac === 0;
-  if (audioPlayer) audioPlayer.volume = window.isKaraokeActive?.() ? 0 : state.volume;
+  if (audioPlayer) audioPlayer.volume = state.isMuted ? 0 : state.volume;
   updateVolumeUI();
 }
 
@@ -3814,7 +3758,7 @@ function handleVolumeKeydown(event) {
 
 function updateVolumeUI() {
   const volume = state.isMuted ? 0 : state.volume;
-  if (audioPlayer) audioPlayer.volume = window.isKaraokeActive?.() ? 0 : volume;
+  if (audioPlayer) audioPlayer.volume = volume;
   document.getElementById('volume-fill').style.width = (volume * 100) + '%';
   document.getElementById('exp-volume-fill').style.width = (volume * 100) + '%';
   document.querySelectorAll('[data-volume-slider]').forEach(slider => slider.setAttribute('aria-valuenow', String(Math.round(volume * 100))));
@@ -3967,13 +3911,12 @@ window.setExpandedViewMode = function setExpandedViewMode(mode) {
   const player = document.getElementById('expanded-player');
   if (!player) return;
   player.scrollTop = 0;
-  player.classList.remove('mode-art', 'mode-lyrics', 'mode-karaoke');
+  player.classList.remove('mode-art', 'mode-lyrics');
   player.classList.add(`mode-${mode}`);
 
   const tabs = {
     art: document.getElementById('exp-tab-art'),
-    lyrics: document.getElementById('exp-tab-lyrics'),
-    karaoke: document.getElementById('exp-tab-karaoke')
+    lyrics: document.getElementById('exp-tab-lyrics')
   };
   Object.keys(tabs).forEach(k => {
     if (tabs[k]) {
@@ -3984,17 +3927,10 @@ window.setExpandedViewMode = function setExpandedViewMode(mode) {
   });
 
   const lyricsQuickBtn = document.getElementById('exp-lyrics-quick-btn');
-  const karaokeQuickBtn = document.getElementById('exp-karaoke-quick-btn');
   if (lyricsQuickBtn) lyricsQuickBtn.classList.toggle('active', mode === 'lyrics');
-  if (karaokeQuickBtn) karaokeQuickBtn.classList.toggle('active', mode === 'karaoke');
-
-  const karaokePanel = document.getElementById('exp-karaoke-panel');
-  if (karaokePanel) {
-    karaokePanel.classList.toggle('hidden', mode !== 'karaoke');
-  }
 
   // Ensure lyrics are rendered for current song
-  if (mode === 'lyrics' || mode === 'karaoke') {
+  if (mode === 'lyrics') {
     if (window.renderExpLyrics) {
       window.renderExpLyrics();
     }
@@ -4005,20 +3941,6 @@ window.toggleExpandedLyrics = function toggleExpandedLyrics() {
   const player = document.getElementById('expanded-player');
   const isLyrics = player && player.classList.contains('mode-lyrics');
   window.setExpandedViewMode(isLyrics ? 'art' : 'lyrics');
-};
-
-window.toggleExpandedKaraoke = function toggleExpandedKaraoke() {
-  const player = document.getElementById('expanded-player');
-  const isKaraoke = player && player.classList.contains('mode-karaoke');
-  window.setExpandedViewMode(isKaraoke ? 'art' : 'karaoke');
-};
-
-window.handleExpVocalSliderChange = function handleExpVocalSliderChange(val) {
-  const label = document.getElementById('exp-vocal-val');
-  if (label) label.textContent = `${val}%`;
-  if (window.syncKaraokeVocalSlider) {
-    window.syncKaraokeVocalSlider(val);
-  }
 };
 
 // ─── Update UI ────────────────────────────────────────────────────
@@ -4039,7 +3961,7 @@ function updatePlayerUI() {
   document.getElementById('queue-current-title').textContent = currentTrack.title;
   document.getElementById('queue-current-artist').textContent = currentTrack.artist;
   document.querySelector('.queue-art').src = currentTrack.img;
-  if (audioPlayer && !sharedRemoteAudio && audioPlayer.src !== song.audioSrc) audioPlayer.pause();
+  if (audioPlayer && !sharedRemoteAudio && audioPlayer.getAttribute('src') !== song.audioSrc) audioPlayer.pause();
   buildQueuePanel();
   // Background blur
   const expBg = document.getElementById('expanded-bg');

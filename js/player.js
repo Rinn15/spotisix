@@ -14,9 +14,6 @@ const moodIconMap = {
   energy:   'fa-solid fa-bolt',
   sad:      'fa-solid fa-cloud-rain',
   romantic: 'fa-solid fa-heart',
-  workout:  'fa-solid fa-fire-flame-curved',
-  sleep:    'fa-solid fa-moon',
-  party:    'fa-solid fa-compact-disc',
 };
 
 // ─── Initialize ──────────────────────────────────────────────────

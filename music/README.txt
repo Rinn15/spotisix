@@ -24,6 +24,10 @@ Fields:
 - img: cover image path; existing album images are in the project root
 - audioSrc: path to the audio file (required)
 
+To change a song's cover, put the image in the project folder and update that song's
+"img" value in tracks.json to its filename, for example "img": "my-cover.jpg".
+The production build includes cover, audio, and lyrics files referenced by tracks.json.
+
 IMPORTANT:
 - File names and paths must match exactly.
 - Browsers cannot automatically list files in a folder, so add each song to tracks.json.
