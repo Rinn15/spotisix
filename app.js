@@ -268,6 +268,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   function getSharedPlaybackSnapshot() {
     const song = songs[state.currentSong];
     return {
+      trackId: song.id || `${song.title}::${song.artist}`,
       title: song.title,
       artist: song.artist,
       album: song.album,
@@ -275,12 +276,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       duration: song.duration,
       currentTime: audioPlayer?.currentTime || 0,
       isPlaying: state.isPlaying,
+      timestamp: Date.now(),
     };
   }
   window.getSharedAudioTrack = function getSharedAudioTrack() {
     const song = songs[state.currentSong];
     return {
       ...song,
+      id: song.id || `${song.title}::${song.artist}`,
       currentTime: audioPlayer?.currentTime || 0,
       isPlaying: state.isPlaying,
       audioElement: audioPlayer,
@@ -291,19 +294,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   };
   window.applySharedPlaybackSnapshot = function applySharedPlaybackSnapshot(snapshot) {
     sharedTrackMetadata = {
+      trackId: snapshot.trackId || null,
       title: snapshot.title,
       artist: snapshot.artist,
       album: snapshot.album,
       img: snapshot.img || 'album_lumina.jpg',
       duration: snapshot.duration,
     };
-    if (sharedRemoteAudio && Math.abs(audioPlayer.currentTime - snapshot.currentTime) > 1.5) {
-      try {
-        audioPlayer.currentTime = snapshot.currentTime;
-      } catch {
-        // The stream may not be seekable; retain the host's displayed position instead.
-      }
-    }
+    // Không gán audioPlayer.currentTime cho luồng WebRTC:
+    // currentTime của MediaStream là thời gian phát luồng nhận, không phải
+    // vị trí bài hát gốc và thường không seek được. Vị trí hiển thị lấy từ
+    // snapshot của Host đã được bù độ trễ trong shared-listening.js.
     if (sharedRemoteAudio && snapshot.isPlaying && audioPlayer.paused) {
       audioPlayer.play().catch(error => showAppToast(`Không thể phát âm thanh chung: ${error.message}`));
     } else if (sharedRemoteAudio && !snapshot.isPlaying && !audioPlayer.paused) {
@@ -4023,12 +4024,9 @@ function updateProgress() {
 }
 
 function updateNativeAudioProgress() {
-  if (sharedRemoteAudio && Number.isFinite(audioPlayer.currentTime)) {
-    state.elapsed = audioPlayer.currentTime;
-    state.progress = sharedTrackMetadata?.duration
-      ? state.elapsed / sharedTrackMetadata.duration
-      : 0;
-    updateProgress();
+  if (sharedRemoteAudio) {
+    // Guest dùng timeline do Host gửi trong playback snapshot.
+    // Không lấy currentTime của MediaStream để ghi đè vị trí bài hát.
     return;
   }
   if (!songs[state.currentSong]?.audioSrc || !Number.isFinite(audioPlayer.duration)) return;

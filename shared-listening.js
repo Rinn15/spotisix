@@ -35,6 +35,12 @@ let activeInvite = null;
 let hostAudioStream = null;
 let hostStateTimer = null;
 let hostRoomJoinPromise = null;
+let guestClockTimer = null;
+let roomLocation = null;
+let distanceCheckInProgress = false;
+let distanceLimitTriggered = false;
+const pendingClockPings = new Map();
+const clockSync = { offsetMs: 0, rttMs: null, samples: 0 };
 
 window.setSharedListeningDiscoveryChannel = function setSharedListeningDiscoveryChannel(channel, sessionKey) {
   discoveryChannel = channel;
@@ -171,7 +177,16 @@ inviteDialog.addEventListener('cancel', event => {
 
 window.leaveSharedListening = async function leaveSharedListening() {
   window.clearInterval(hostStateTimer);
+  window.clearInterval(guestClockTimer);
   hostStateTimer = null;
+  guestClockTimer = null;
+  pendingClockPings.clear();
+  roomLocation = null;
+  distanceCheckInProgress = false;
+  distanceLimitTriggered = false;
+  clockSync.offsetMs = 0;
+  clockSync.rttMs = null;
+  clockSync.samples = 0;
   for (const connection of peerConnections.values()) connection.close();
   peerConnections.clear();
   pendingIceCandidates.clear();
@@ -210,6 +225,7 @@ function getSharedAudioTrackSnapshot() {
   const track = window.getSharedAudioTrack?.();
   if (!track) throw new Error('Không thể lấy thông tin bài hát đang phát.');
   return {
+    trackId: track.id || `${track.title}::${track.artist}`,
     title: track.title,
     artist: track.artist,
     album: track.album,
@@ -217,6 +233,8 @@ function getSharedAudioTrackSnapshot() {
     duration: track.duration,
     currentTime: track.currentTime,
     isPlaying: track.isPlaying,
+    // Mốc thời gian của máy Host; Guest dùng để bù thời gian truyền trạng thái.
+    timestamp: Date.now(),
   };
 }
 
@@ -282,6 +300,8 @@ async function joinRoom({ roomId: requestedRoomId, role, hostId, hostName }) {
   });
   roomChannel = channel;
   channel.on('presence', { event: 'sync' }, updateRoomBanner);
+  channel.on('presence', { event: 'sync' }, () => { void validateRoomDistances(channel); });
+  channel.on('presence', { event: 'join' }, () => { void validateRoomDistances(channel); });
   channel.on('presence', { event: 'sync' }, () => {
     if (roomRole === 'host') {
       for (const [key, entries] of Object.entries(channel.presenceState())) {
@@ -303,10 +323,59 @@ async function joinRoom({ roomId: requestedRoomId, role, hostId, hostName }) {
     if (payload?.targetId === clientId) void handleSignal(payload);
   });
   channel.on('broadcast', { event: 'playback-state' }, ({ payload }) => {
-    if (roomRole === 'guest' && payload?.snapshot) window.applySharedPlaybackSnapshot?.(payload.snapshot);
+    if (roomRole === 'guest' && payload?.snapshot) {
+      window.applySharedPlaybackSnapshot?.(getLatencyAdjustedSnapshot(payload.snapshot));
+    }
   });
   channel.on('broadcast', { event: 'room-state' }, ({ payload }) => {
-    if (roomRole === 'guest' && payload?.snapshot) window.applySharedPlaybackSnapshot?.(payload.snapshot);
+    if (roomRole === 'guest' && payload?.snapshot) {
+      window.applySharedPlaybackSnapshot?.(getLatencyAdjustedSnapshot(payload.snapshot));
+    }
+  });
+  channel.on('broadcast', { event: 'clock-ping' }, ({ payload }) => {
+    if (roomRole !== 'host' || !payload?.pingId || !Number.isFinite(payload.clientSentAt)) return;
+    const hostReceivedAt = Date.now();
+    void sendRoomMessage('clock-pong', {
+      pingId: payload.pingId,
+      targetId: payload.clientId,
+      clientSentAt: payload.clientSentAt,
+      hostReceivedAt,
+      hostSentAt: Date.now(),
+    });
+  });
+  channel.on('broadcast', { event: 'clock-pong' }, ({ payload }) => {
+    if (roomRole !== 'guest' || payload?.targetId !== clientId) return;
+    const localReceivedAt = Date.now();
+    const pending = pendingClockPings.get(payload.pingId);
+    if (!pending) return;
+    pendingClockPings.delete(payload.pingId);
+    const roundTrip = Math.max(0,
+      (localReceivedAt - payload.clientSentAt) -
+      (payload.hostSentAt - payload.hostReceivedAt));
+    const offset = ((payload.hostReceivedAt - payload.clientSentAt) +
+      (payload.hostSentAt - localReceivedAt)) / 2;
+    // Làm mượt nhiều mẫu để tránh một gói tin bất thường làm đồng hồ nhảy mạnh.
+    clockSync.offsetMs = clockSync.samples === 0
+      ? offset
+      : clockSync.offsetMs * 0.75 + offset * 0.25;
+    clockSync.rttMs = clockSync.rttMs === null
+      ? roundTrip
+      : clockSync.rttMs * 0.75 + roundTrip * 0.25;
+    clockSync.samples += 1;
+  });
+  channel.on('broadcast', { event: 'distance-limit' }, ({ payload }) => {
+    if (roomRole === 'guest' && payload?.targetId === clientId) {
+      showAppToast('Khoảng cách tới chủ phòng vượt quá 600 km. Bạn đã bị đưa ra khỏi phòng.');
+      void window.leaveSharedListening();
+    }
+  });
+  channel.on('broadcast', { event: 'peer-reconnect-request' }, ({ payload }) => {
+    if (roomRole !== 'host' || !payload?.guestId || !roomChannel) return;
+    const oldConnection = peerConnections.get(payload.guestId);
+    if (oldConnection) oldConnection.close();
+    peerConnections.delete(payload.guestId);
+    pendingIceCandidates.delete(payload.guestId);
+    void createHostPeerConnection(payload.guestId);
   });
   try {
     await new Promise((resolve, reject) => {
@@ -321,7 +390,14 @@ async function joinRoom({ roomId: requestedRoomId, role, hostId, hostName }) {
         }
       });
     });
-    const trackStatus = await channel.track({ displayName: getLocalDisplayName(), role });
+    // Chỉ xin vị trí khi người dùng thực sự tham gia phòng nghe chung.
+    // Tọa độ được gửi trong Presence của phòng, không ghi vào bảng database.
+    roomLocation = await getCurrentRoomLocation();
+    const trackStatus = await channel.track({
+      displayName: getLocalDisplayName(),
+      role,
+      location: roomLocation,
+    });
     if (trackStatus !== 'ok') throw new Error(`Không thể kết nối phòng nghe chung (${trackStatus || 'Realtime'}).`);
     if (role === 'guest') {
       window.setSharedListeningRole?.('guest');
@@ -333,7 +409,13 @@ async function joinRoom({ roomId: requestedRoomId, role, hostId, hostName }) {
         void sendRoomMessage('playback-state', { snapshot: getSharedAudioTrackSnapshot() });
       }, 1200);
     }
+    if (role === 'guest') {
+      void sendClockPing();
+      guestClockTimer = window.setInterval(() => { void sendClockPing(); }, 5000);
+    }
     updateRoomBanner();
+    await validateRoomDistances(channel);
+    if (!roomRole) return; // Guest có thể đã bị từ chối vì vượt quá 600 km.
     showAppToast(role === 'host' ? 'Đã tạo phòng nghe chung.' : `Đã tham gia nghe chung với ${hostName}.`);
   } catch (error) {
     window.clearInterval(hostStateTimer);
@@ -347,6 +429,9 @@ async function joinRoom({ roomId: requestedRoomId, role, hostId, hostName }) {
     roomHostId = null;
     roomHostName = '';
     hostAudioStream = null;
+    roomLocation = null;
+    window.clearInterval(guestClockTimer);
+    guestClockTimer = null;
     banner.classList.add('hidden');
     window.setSharedListeningRole?.(null);
     try {
@@ -356,6 +441,99 @@ async function joinRoom({ roomId: requestedRoomId, role, hostId, hostName }) {
     }
     throw error;
   }
+}
+
+
+function getCurrentRoomLocation() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('Trình duyệt không hỗ trợ xác định vị trí; không thể kiểm tra giới hạn 600 km.'));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      position => resolve({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      }),
+      error => {
+        const reason = error.code === 1
+          ? 'Bạn chưa cấp quyền vị trí.'
+          : error.code === 3
+            ? 'Lấy vị trí quá thời gian chờ.'
+            : 'Không thể xác định vị trí hiện tại.';
+        reject(new Error(`${reason} Cần cho phép vị trí để kiểm tra giới hạn 600 km.`));
+      },
+      { enableHighAccuracy: false, maximumAge: 60000, timeout: 12000 },
+    );
+  });
+}
+
+function distanceInKm(a, b) {
+  const toRad = value => value * Math.PI / 180;
+  const dLat = toRad(b.latitude - a.latitude);
+  const dLon = toRad(b.longitude - a.longitude);
+  const lat1 = toRad(a.latitude);
+  const lat2 = toRad(b.latitude);
+  const h = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
+async function validateRoomDistances(channel = roomChannel) {
+  if (!channel || !roomLocation || distanceCheckInProgress || distanceLimitTriggered) return;
+  distanceCheckInProgress = true;
+  try {
+    const entries = Object.entries(channel.presenceState());
+    const hosts = entries.flatMap(([key, values]) =>
+      values.filter(value => value.role === 'host' && value.location)
+        .map(value => ({ key, location: value.location })));
+    const guests = entries.flatMap(([key, values]) =>
+      values.filter(value => value.role === 'guest' && value.location)
+        .map(value => ({ key, location: value.location })));
+    if (roomRole === 'guest') {
+      const host = hosts.find(item => item.key !== clientId);
+      if (host && distanceInKm(roomLocation, host.location) > 600) {
+        distanceLimitTriggered = true;
+        showAppToast('Bạn cách chủ phòng hơn 600 km nên không thể tham gia nghe chung.');
+        await window.leaveSharedListening();
+      }
+    } else if (roomRole === 'host') {
+      for (const guest of guests) {
+        if (guest.key !== clientId && distanceInKm(roomLocation, guest.location) > 600) {
+          void sendRoomMessage('distance-limit', { targetId: guest.key });
+        }
+      }
+    }
+  } finally {
+    distanceCheckInProgress = false;
+  }
+}
+
+async function sendClockPing() {
+  if (roomRole !== 'guest' || !roomChannel) return;
+  const pingId = globalThis.crypto?.randomUUID?.() || `ping-${Date.now()}-${Math.random()}`;
+  const clientSentAt = Date.now();
+  pendingClockPings.set(pingId, { clientSentAt });
+  // Dọn ping cũ nếu phản hồi bị mất.
+  window.setTimeout(() => pendingClockPings.delete(pingId), 10000);
+  await sendRoomMessage('clock-ping', { pingId, clientId, clientSentAt });
+}
+
+function getLatencyAdjustedSnapshot(snapshot) {
+  if (!snapshot || !Number.isFinite(snapshot.currentTime)) return snapshot;
+  const hostNow = Date.now() + clockSync.offsetMs;
+  const elapsedSinceSnapshot = Number.isFinite(snapshot.timestamp)
+    ? Math.max(0, (hostNow - snapshot.timestamp) / 1000)
+    : 0;
+  return {
+    ...snapshot,
+    // Đây là vị trí dự kiến trên timeline của Host, dùng cho giao diện.
+    // Âm thanh WebRTC vẫn là luồng liên tục, không thể seek bằng currentTime.
+    currentTime: snapshot.isPlaying
+      ? snapshot.currentTime + elapsedSinceSnapshot
+      : snapshot.currentTime,
+    estimatedNetworkRttMs: clockSync.rttMs,
+  };
 }
 
 async function createHostPeerConnection(remoteClientId) {
@@ -371,8 +549,18 @@ async function createHostPeerConnection(remoteClientId) {
   connection.onconnectionstatechange = () => {
     if (['failed', 'closed'].includes(connection.connectionState)) {
       connection.close();
-      peerConnections.delete(remoteClientId);
+      if (peerConnections.get(remoteClientId) === connection) {
+        peerConnections.delete(remoteClientId);
+      }
       pendingIceCandidates.delete(remoteClientId);
+      if (connection.connectionState === 'failed') {
+        // Tạo lại luồng từ thời điểm hiện tại; Host vẫn đang phát bài gốc.
+        window.setTimeout(() => {
+          if (roomRole === 'host' && roomChannel) {
+            void createHostPeerConnection(remoteClientId);
+          }
+        }, 1500);
+      }
     }
   };
   try {
@@ -403,7 +591,9 @@ async function handleSignal(payload) {
   }
   if (roomRole !== 'guest') return;
   let connection = peerConnections.get(payload.fromId);
-  if (!connection) {
+  if (!connection || ['failed', 'closed'].includes(connection.connectionState) ||
+      (payload.description?.type === 'offer' && connection.remoteDescription)) {
+    if (connection) connection.close();
     connection = new RTCPeerConnection({
       iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
     });
@@ -413,6 +603,14 @@ async function handleSignal(payload) {
     };
     connection.ontrack = event => {
       void window.attachSharedAudioStream?.(event.streams[0]);
+    };
+    connection.onconnectionstatechange = () => {
+      if (connection.connectionState === 'failed' && roomRole === 'guest' && roomChannel) {
+        peerConnections.delete(payload.fromId);
+        pendingIceCandidates.delete(payload.fromId);
+        // Yêu cầu Host tạo lại PeerConnection; luồng mới sẽ bắt đầu từ bài đang phát.
+        void sendRoomMessage('peer-reconnect-request', { guestId: clientId });
+      }
     };
   }
   try {
