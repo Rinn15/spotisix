@@ -4411,6 +4411,7 @@ function spotifyRedirectUri() {
 }
 
 function initializeSpotify() {
+  if (!document.getElementById('spotify-client-id')) return;
   const clientIdInput = document.getElementById('spotify-client-id');
   const redirectUri = spotifyRedirectUri();
   document.getElementById('spotify-redirect-uri').textContent = redirectUri;
@@ -4420,11 +4421,13 @@ function initializeSpotify() {
 
 function setSpotifyStatus(message, isError = false) {
   const status = document.getElementById('spotify-status');
+  if (!status) return;
   status.textContent = message;
   status.classList.toggle('is-error', isError);
 }
 
 function setSpotifyConnected(connected) {
+  if (!document.getElementById('spotify-connect-btn')) return;
   document.getElementById('spotify-connect-btn').classList.toggle('hidden', connected);
   document.getElementById('spotify-sync-btn').classList.toggle('hidden', !connected);
   document.getElementById('spotify-disconnect-btn').classList.toggle('hidden', !connected);
