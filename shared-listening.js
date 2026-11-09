@@ -680,4 +680,71 @@ function updateRoomBanner() {
   roomIndicator.title = `Phòng nghe chung: ${roomDescription}`;
   roomIndicator.classList.remove('hidden');
   document.body.classList.add('has-shared-listening-room');
+  window.dispatchEvent(new CustomEvent('spotisix:shared-room-updated', {
+  detail: window.getSharedListeningRoomState?.() || { active: false },
+}));
 }
+
+window.createSharedListeningRoom = async function createSharedListeningRoom() {
+  if (roomChannel && roomRole) {
+    throw new Error(
+      "Bạn đang ở trong một phòng nghe chung. Hãy rời phòng trước.",
+    );
+  }
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = new Uint8Array(6);
+  globalThis.crypto.getRandomValues(bytes);
+  const roomCode = Array.from(
+    bytes,
+    (value) => alphabet[value % alphabet.length],
+  ).join("");
+  await joinRoom({
+    roomId: roomCode,
+    role: "host",
+    hostId: clientId,
+    hostName: getLocalDisplayName(),
+  });
+  return { roomCode };
+};
+
+window.joinSharedListeningRoomByCode =
+  async function joinSharedListeningRoomByCode(roomCode) {
+    const code = String(roomCode || "")
+      .trim()
+      .toUpperCase();
+    if (!/^[A-Z0-9]{6}$/.test(code)) throw new Error("Mã phòng không hợp lệ.");
+    if (roomChannel && roomRole)
+      throw new Error("Bạn đang ở trong một phòng khác. Hãy rời phòng trước.");
+    await joinRoom({
+      roomId: code,
+      role: "guest",
+      hostId: null,
+      hostName: "Host",
+    });
+    return true;
+  };
+
+window.getSharedListeningRoomState = function getSharedListeningRoomState() {
+  if (!roomChannel || !roomRole || !roomId) return { active: false };
+  const members = Object.entries(roomChannel.presenceState()).flatMap(
+    ([key, entries]) => {
+      const entry = entries.find(
+        (item) =>
+          typeof item.displayName === "string" && item.displayName.trim(),
+      );
+      return entry
+        ? [
+            {
+              id: key,
+              name: entry.displayName.trim(),
+              role: entry.role || (key === clientId ? roomRole : "guest"),
+            },
+          ]
+        : [];
+    },
+  );
+  if (!members.some((member) => member.id === clientId)) {
+    members.push({ id: clientId, name: getLocalDisplayName(), role: roomRole });
+  }
+  return { active: true, roomCode: roomId, role: roomRole, members };
+};

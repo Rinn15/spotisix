@@ -12,6 +12,7 @@
     rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="css/player.css" />
+  <link rel="stylesheet" href="css/listen-together.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
@@ -160,6 +161,12 @@
         </svg>
         <span>Thư viện</span>
       </button>
+      <button class="nav-item" id="nav-listen-together" aria-label="Nghe cùng bạn bè"
+  onclick="openListenTogether()">
+  <i class="fa-solid fa-headphones nav-icon" aria-hidden="true"></i>
+  <span>Nghe cùng bạn bè</span>
+</button>
+
     </nav>
 
     <div class="sidebar-section">
@@ -447,6 +454,96 @@
         </section>
       </div>
     </div>
+
+    <!-- LISTEN TOGETHER VIEW -->
+<div class="view listen-together-view" id="view-listen-together">
+  <div class="content-scroll" id="listen-together-view">
+    <header class="lt-page-heading">
+      <span class="lt-eyebrow">SPOTISIX · SOCIAL LISTENING</span>
+      <h1>Nghe nhạc cùng bạn bè</h1>
+      <p>Âm nhạc sẽ vui hơn khi có bạn bè. Tạo phòng hoặc tham gia bằng mã mời.</p>
+    </header>
+
+    <div id="lt-create-panel" class="lt-grid">
+      <section class="lt-card">
+        <div class="lt-card-icon"><i class="fa-solid fa-headphones"></i></div>
+        <h2>Tạo phòng nghe chung</h2>
+        <p>Tạo phòng mới, trở thành Host và mời bạn bè cùng nghe nhạc.</p>
+        <div class="lt-benefits">
+          <span>✓ Bạn là Host và điều khiển nhạc cho cả phòng</span>
+          <span>✓ Mã phòng 6 ký tự được tạo tự động</span>
+          <span>✓ Danh sách thành viên cập nhật realtime</span>
+        </div>
+        <button class="lt-button lt-button-primary lt-button-full" id="lt-create-button" type="button">＋ Tạo phòng</button>
+      </section>
+
+      <section class="lt-card" id="lt-join-panel">
+        <div class="lt-card-icon"><i class="fa-solid fa-arrow-right-to-bracket"></i></div>
+        <h2>Tham gia phòng</h2>
+        <p>Nhập mã phòng bạn bè gửi hoặc mở link mời.</p>
+        <label class="lt-label" for="lt-room-code">MÃ PHÒNG</label>
+        <input class="lt-input" id="lt-room-code" maxlength="6" autocomplete="one-time-code"
+          placeholder="Nhập mã phòng..." aria-describedby="lt-room-code-help" />
+        <button class="lt-button lt-button-secondary lt-button-full" id="lt-join-button" type="button">Tham gia</button>
+        <p class="lt-help" id="lt-room-code-help">Mã phòng gồm 6 ký tự, không phân biệt hoa/thường.</p>
+      </section>
+    </div>
+
+    <div class="lt-rules" id="lt-rules">
+      <div><strong>Quy tắc phòng nghe chung</strong>2–6 người · Host–thành viên tối đa 600 km</div>
+      <div><strong class="lt-private">Vị trí riêng tư</strong>Xin quyền trước khi kiểm tra · Không chia sẻ tọa độ công khai</div>
+    </div>
+
+    <section class="lt-room-card hidden" id="lt-room-panel" aria-live="polite">
+      <header class="lt-room-heading">
+        <div><h1 id="lt-room-title">Phòng nghe chung</h1><p id="lt-role-label">Bạn đang là Host</p></div>
+        <span class="lt-live-pill">● Đang hoạt động</span>
+      </header>
+
+      <div class="lt-room-layout">
+        <div class="lt-room-main">
+          <section class="lt-code-box">
+            <div class="lt-code-top"><span>MÃ PHÒNG</span>
+              <div class="lt-inline-actions">
+                <button class="lt-copy-button" id="lt-copy-code" type="button">▢ Sao chép mã</button>
+                <button class="lt-copy-button" id="lt-copy-link" type="button">↗ Sao chép link</button>
+              </div>
+            </div>
+            <strong class="lt-code-value" id="lt-room-code-label">------</strong>
+            <div class="lt-invite-url">Chia sẻ mã hoặc link để bạn bè tham gia phòng.</div>
+          </section>
+
+          <section class="lt-now-playing">
+            <div class="lt-track-art" id="lt-track-art" aria-hidden="true">♫</div>
+            <div class="lt-track-copy"><small>ĐANG PHÁT CÙNG PHÒNG</small>
+              <strong id="lt-track-title">Đang chờ Host</strong><span id="lt-track-artist">SpotiSix</span>
+            </div>
+          </section>
+
+          <section class="lt-host-controls">
+            <strong>Host controls</strong>
+            <p>Play / Pause · Next / Previous · Seek → đồng bộ mọi người</p>
+          </section>
+        </div>
+
+        <aside class="lt-room-card lt-participants">
+          <div class="lt-participants-head"><h2>Người tham gia</h2><strong id="lt-member-count">1/6 người</strong></div>
+          <ul class="lt-member-list" id="lt-member-list" aria-label="Danh sách người tham gia"></ul>
+          <div class="lt-presence-note">● Đang kết nối · Presence realtime</div>
+        </aside>
+      </div>
+
+      <div class="lt-room-actions">
+        <button class="lt-button lt-button-primary" id="lt-invite-button" type="button">＋ Mời bạn bè</button>
+        <button class="lt-button lt-button-danger" id="lt-leave-button" type="button">Rời phòng</button>
+      </div>
+      <p class="lt-help">Mất mạng? SpotiSix sẽ thử kết nối lại và đồng bộ trạng thái mới nhất từ Host.</p>
+    </section>
+
+    <p class="lt-status hidden" id="lt-status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
 
     <!-- SEARCH VIEW -->
     <div class="view" id="view-search">
@@ -1194,6 +1291,7 @@
   <script type="module" src="nearby.js"></script>
   <script type="module" src="shared-listening.js"></script>
   <script src="js/player.js" vite-ignore></script>
+  <script type="module" src="listen-together.js"></script>
 </body>
 
 </html>
