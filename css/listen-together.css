@@ -121,6 +121,19 @@
   line-height: 1.5;
   margin-bottom: 20px;
 }
+.room-dialog-feedback {
+  margin: 0 0 16px;
+  padding: 11px 13px;
+  border-radius: 9px;
+  color: #1ed760;
+  background: rgba(30, 215, 96, 0.1);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.room-dialog-feedback.is-error {
+  color: #ff8585;
+  background: rgba(227, 75, 82, 0.12);
+}
 
 /* Create Card */
 .room-dialog-card.create-card {

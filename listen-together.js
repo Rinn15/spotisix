@@ -37,6 +37,7 @@
   const roomDialogTrackArtist = document.getElementById('room-dialog-track-artist');
   const roomDialogTrackImage = document.getElementById('room-dialog-track-img');
   const roomDialogTrackStatus = document.getElementById('room-dialog-track-status');
+  const roomDialogFeedback = document.getElementById('room-dialog-feedback');
 
   let activeRoomCode = '';
   let lastMembers = [];
@@ -49,7 +50,10 @@
 
   function notifyRoomDialog(message, isError = false) {
     notify(message, isError);
-    window.showAppToast?.(message);
+    roomDialogFeedback.textContent = message;
+    roomDialogFeedback.classList.toggle('is-error', isError);
+    roomDialogFeedback.classList.remove('hidden');
+    if (!roomDialog.open) window.showAppToast?.(message);
   }
 
   function setBusy(button, busy, label) {
@@ -143,6 +147,7 @@
 
   window.openRoomDialog = function openRoomDialog() {
     renderRoomDialog();
+    roomDialogFeedback.classList.add('hidden');
     if (!roomDialog.open) roomDialog.showModal();
   };
 
