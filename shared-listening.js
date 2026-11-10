@@ -218,9 +218,27 @@ window.leaveSharedListening = async function leaveSharedListening() {
 window.isSharedListeningActive = () => Boolean(roomRole || localDemoRoom);
 window.getSharedListeningRole = () => roomRole;
 
+function getRoomAudioUrl(audioSrc) {
+  if (typeof audioSrc !== 'string' || !audioSrc.trim()) return '';
+  try {
+    const url = new URL(audioSrc, window.location.href);
+    return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
+  } catch {
+    return '';
+  }
+}
+
+function isLoopbackHostname(hostname) {
+  const host = hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  return host === 'localhost' || host.endsWith('.localhost') ||
+    host === '::1' || /^127(?:\.\d{1,3}){3}$/.test(host);
+}
+
 window.addEventListener('spotisix:playback-change', event => {
   if (roomRole === 'host' && roomChannel) {
-    void sendRoomMessage('playback-state', { snapshot: event.detail });
+    void sendRoomMessage('playback-state', {
+      snapshot: { ...event.detail, audioSrc: getRoomAudioUrl(event.detail?.audioSrc) },
+    });
   }
 });
 
@@ -239,7 +257,7 @@ function getSharedAudioTrackSnapshot() {
     album: track.album,
     img: track.img,
     duration: track.duration,
-    audioSrc: track.audioSrc || '',
+    audioSrc: getRoomAudioUrl(track.audioSrc),
     lrc: track.lrc || '',
     lyrics: track.lyrics || '',
     currentTime: track.currentTime,
@@ -281,16 +299,20 @@ function getHostAudioStream() {
 
 function prepareHostAudioSharing() {
   const track = window.getSharedAudioTrack?.();
-  const hasShareableAudioFile = Boolean(track?.audioSrc && !/^(blob:|data:)/i.test(track.audioSrc));
-  const audio = track?.audioElement;
-  const canCaptureAudio = typeof audio?.captureStream === 'function' ||
-    typeof audio?.mozCaptureStream === 'function';
-  hostAudioStream = canCaptureAudio ? getHostAudioStream() : null;
-  if (hostAudioStream || hasShareableAudioFile) return true;
-  if (!canCaptureAudio) {
-    showAppToast('Không có tệp nhạc công khai hoặc luồng âm thanh để chia sẻ. Hãy phát nhạc đã tải lên.');
+  const audioUrl = getRoomAudioUrl(track?.audioSrc);
+  if (!audioUrl) {
+    hostAudioStream = null;
+    showAppToast('Tệp này chỉ có trên thiết bị của bạn. Hãy chọn bài đã đăng lên thư viện công khai để mọi người nghe được.');
+    return false;
   }
-  return false;
+  if (isLoopbackHostname(new URL(audioUrl).hostname)) {
+    hostAudioStream = null;
+    showAppToast('Bạn đang mở SpotiSix bằng localhost. Thiết bị khác không thể tải nhạc từ địa chỉ này; hãy dùng link deploy công khai.');
+    return false;
+  }
+
+  hostAudioStream = getHostAudioStream();
+  return true;
 }
 
 async function respondToInvite(invite, accepted) {
@@ -313,7 +335,7 @@ async function joinRoom({ roomId: requestedRoomId, role, hostId, hostName }) {
   const client = window.getNearbySupabaseClient?.();
   if (!client) throw new Error('Đăng nhập và kết nối Supabase trước khi mở phòng nghe chung.');
   if (role === 'host' && !prepareHostAudioSharing()) {
-    throw new Error('Không có tệp nhạc công khai hoặc luồng âm thanh để chia sẻ. Hãy phát nhạc đã tải lên.');
+    throw new Error('Bài đang phát chỉ có trên thiết bị của bạn. Hãy chọn bài đã đăng lên thư viện công khai để mọi người nghe được.');
   }
 
   roomId = requestedRoomId;

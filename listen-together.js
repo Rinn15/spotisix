@@ -60,11 +60,22 @@
 
   async function enableSharedAudio() {
     try {
-      await window.resumeSharedAudio?.();
+      if (typeof window.resumeSharedAudio !== 'function') {
+        throw new Error('Chưa nhận được luồng nhạc từ Host. Hãy đợi vài giây rồi thử lại.');
+      }
+      await window.resumeSharedAudio();
       notifyRoomDialog('Đã bật âm thanh.');
     } catch (error) {
       notifyRoomDialog(error?.message || 'Không thể bật âm thanh phòng.', true);
     }
+  }
+
+  function renderAudioActions(active, role) {
+    const show = active && role === 'guest';
+    enableAudioButton.classList.toggle('hidden', !show);
+    dialogEnableAudioButton.classList.toggle('hidden', !show);
+    enableAudioButton.title = 'Nếu chưa nghe thấy nhạc, nhấn để bật hoặc thử lại âm thanh.';
+    dialogEnableAudioButton.title = enableAudioButton.title;
   }
 
   function setBusy(button, busy, label) {
@@ -109,6 +120,7 @@
 
   function renderRoomDialog(state = window.getSharedListeningRoomState?.()) {
     const isActive = Boolean(state?.active);
+    renderAudioActions(isActive, state?.role);
     roomDialogIdle.classList.toggle('hidden', isActive);
     roomDialogActive.classList.toggle('hidden', !isActive);
 
@@ -314,9 +326,11 @@
   function renderRoom(state) {
     if (!state?.active) {
       activeRoomCode = '';
+      renderAudioActions(false, null);
       showCreateJoin();
       return;
     }
+    renderAudioActions(true, state.role);
     activeRoomCode = state.roomCode || '';
     roomCodeLabel.textContent = activeRoomCode || '------';
     roomTitle.textContent = state.role === 'host' ? 'Phòng của bạn' : 'Phòng nghe chung';
@@ -418,13 +432,16 @@
   window.addEventListener('spotisix:playback-change', renderRoomDialogTrack);
   window.addEventListener('spotisix:shared-playback-updated', renderRoomDialogTrack);
   window.addEventListener('spotisix:track-change', renderRoomDialogTrack);
-  window.addEventListener('spotisix:shared-audio-blocked', () => {
-    enableAudioButton.classList.remove('hidden');
-    dialogEnableAudioButton.classList.remove('hidden');
+  window.addEventListener('spotisix:shared-audio-blocked', (event) => {
+    const reason = event.detail?.message;
+    notifyRoomDialog(
+      `${reason || 'Trình duyệt chưa phát được âm thanh.'} Nhấn “Bật âm thanh” để thử lại.`,
+      true,
+    );
   });
   window.addEventListener('spotisix:shared-audio-ready', () => {
-    enableAudioButton.classList.add('hidden');
-    dialogEnableAudioButton.classList.add('hidden');
+    const state = window.getSharedListeningRoomState?.();
+    renderAudioActions(Boolean(state?.active), state?.role);
   });
 
   // Sidebar navigation uses the existing showView() routing.
