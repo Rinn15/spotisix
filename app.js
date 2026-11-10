@@ -4197,40 +4197,7 @@ function escapeSearchHtml(str) {
 }
 
 function highlightMatch(text, query) {
-  if (!text || !query) return escapeSearchHtml(text || '');
-  const rawQuery = String(query).trim();
-  if (!rawQuery) return escapeSearchHtml(text);
-
-  const normText = normalizeSearchText(text);
-  const normQ = normalizeSearchText(rawQuery);
-
-  const idx = normText.indexOf(normQ);
-  if (idx !== -1 && normQ.length > 0) {
-    const len = normQ.length;
-    const start = Math.min(idx, text.length);
-    const end = Math.min(idx + len, text.length);
-    const before = escapeSearchHtml(text.slice(0, start));
-    const matched = escapeSearchHtml(text.slice(start, end));
-    const after = highlightMatch(text.slice(end), rawQuery);
-    return `${before}<mark class="search-highlight">${matched}</mark>${after}`;
-  }
-
-  const chars = [...new Set(normQ.replace(/\s+/g, '').split(''))];
-  if (chars.length > 0) {
-    let result = '';
-    for (let i = 0; i < text.length; i++) {
-      const char = text[i];
-      const normChar = normalizeSearchText(char);
-      if (chars.includes(normChar)) {
-        result += `<mark class="search-highlight">${escapeSearchHtml(char)}</mark>`;
-      } else {
-        result += escapeSearchHtml(char);
-      }
-    }
-    return result;
-  }
-
-  return escapeSearchHtml(text);
+  return escapeSearchHtml(text || '');
 }
 
 function handleSearch(q) {
@@ -4275,10 +4242,10 @@ function handleSearch(q) {
       details.className = 'track-details';
       const title = document.createElement('p');
       title.className = 'track-name';
-      title.innerHTML = highlightMatch(song.title, q);
+      title.textContent = song.title;
       const artist = document.createElement('p');
       artist.className = 'track-artist';
-      artist.innerHTML = `${highlightMatch(song.artist, q)} · ${highlightMatch(song.album, q)}`;
+      artist.textContent = `${song.artist} · ${song.album}`;
       details.append(title, artist);
       const duration = document.createElement('span');
       duration.className = 'track-duration';
@@ -4371,10 +4338,10 @@ async function searchPublishedTracks(query, requestId, rawQuery = '') {
       details.className = 'track-details';
       const title = document.createElement('p');
       title.className = 'track-name';
-      title.innerHTML = highlightMatch(song.title, rawQuery || query);
+      title.textContent = song.title;
       const artist = document.createElement('p');
       artist.className = 'track-artist';
-      artist.innerHTML = `${highlightMatch(song.artist, rawQuery || query)} · ${highlightMatch(song.album, rawQuery || query)}`;
+      artist.textContent = `${song.artist} · ${song.album}`;
       details.append(title, artist);
       const duration = document.createElement('span');
       duration.className = 'track-duration';

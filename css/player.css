@@ -622,7 +622,7 @@
 
 .mpr-table-head {
   display: grid;
-  grid-template-columns: 44px 1fr 1fr 100px 80px 70px;
+  grid-template-columns: 44px minmax(180px, 2fr) minmax(100px, 1.2fr) 100px 80px 70px;
   gap: 8px;
   padding: 0 12px 10px;
   font-size: 10.5px;
@@ -641,7 +641,7 @@
 /* Single Track Row */
 .mpr-track-row {
   display: grid;
-  grid-template-columns: 44px 1fr 1fr 100px 80px 70px;
+  grid-template-columns: 44px minmax(180px, 2fr) minmax(100px, 1.2fr) 100px 80px 70px;
   gap: 8px;
   padding: 8px 12px;
   border-radius: 10px;

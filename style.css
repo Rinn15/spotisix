@@ -4486,8 +4486,6 @@ body.queue-hidden .queue-panel { display: none; }
 /* ─── HIDE TRACK NUMBERS ON LEFT ────────────────────────────────── */
 .track-num,
 .mood-track-num,
-.mpr-track-num,
-.mpr-track-num-cell,
 .playlist-table-head span:first-child,
 .track-header span:first-child {
   display: none !important;
@@ -4501,21 +4499,46 @@ body.queue-hidden .queue-panel { display: none; }
 .playlist-table .track-details {
   grid-column: auto !important;
 }
-.track-item {
+.track-item:not(.mood-track-row):not(.mpr-track-row) {
   grid-template-columns: 44px minmax(0, 2fr) minmax(0, 1.4fr) minmax(0, 1fr) 50px 36px 36px 36px !important;
 }
 .recent-track-item {
   grid-template-columns: 44px 1fr !important;
 }
 
-/* ─── SEARCH HIGHLIGHT ──────────────────────────────────────────── */
+/* Fix Mood Playlist table grid columns so song title & album align correctly */
+.mpr-track-row {
+  display: grid !important;
+  grid-template-columns: 44px 2fr 1.2fr 100px 80px 70px !important;
+  gap: 8px !important;
+  align-items: center !important;
+}
+.mpr-table-head {
+  display: grid !important;
+  grid-template-columns: 44px 2fr 1.2fr 100px 80px 70px !important;
+  gap: 8px !important;
+}
+.mpr-track-num-cell {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 44px !important;
+}
+.mood-track-row {
+  display: grid !important;
+  grid-template-columns: 44px 3fr 2fr 1.4fr 70px 75px !important;
+  gap: 12px !important;
+  align-items: center !important;
+}
+
+/* ─── SEARCH HIGHLIGHT RESET (NO GREEN BADGES) ───────────────────── */
 .search-highlight {
-  background: rgba(30, 215, 96, 0.35);
-  color: #1ed760;
-  font-weight: 700;
-  border-radius: 3px;
-  padding: 0 2px;
-  text-shadow: 0 0 10px rgba(30, 215, 96, 0.45);
+  background: transparent !important;
+  color: inherit !important;
+  font-weight: inherit !important;
+  padding: 0 !important;
+  text-shadow: none !important;
+  border-radius: 0 !important;
 }
 
 /* ─── SIDEBAR LIBRARY DIRECT SONGS / ITEMS ───────────────────────── */
