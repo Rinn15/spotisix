@@ -76,3 +76,445 @@
   .lt-room-actions .lt-button { width: 100%; }
   .lt-code-top { align-items: flex-start; flex-direction: column; }
 }
+
+/* ══════════════════════ ROOM DIALOG (TẠO & QUẢN LÝ PHÒNG) ══════════════════════ */
+.room-dialog {
+  width: min(480px, calc(100vw - 32px));
+  max-height: min(680px, calc(100dvh - 32px));
+  margin: auto;
+  padding: 24px;
+  overflow-y: auto;
+  color: var(--text-primary, #fff);
+  background: #181818;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.65);
+}
+.room-dialog::backdrop {
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(6px);
+}
+.room-dialog[open] {
+  animation: dialog-in 0.18s ease-out;
+}
+.room-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.room-dialog-header .eyebrow {
+  color: var(--sp-green-light, #1ed760);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+}
+.room-dialog-header h2 {
+  margin-top: 4px;
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+}
+.room-dialog-desc {
+  color: var(--text-secondary, #b3b3b3);
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+/* Create Card */
+.room-dialog-card.create-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 24px 20px;
+  background: linear-gradient(180deg, rgba(30,215,96,0.08) 0%, rgba(255,255,255,0.03) 100%);
+  border: 1px solid rgba(30,215,96,0.25);
+  border-radius: 14px;
+  gap: 12px;
+}
+.room-dialog-card-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: rgba(30,215,96,0.15);
+  color: #1ed760;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.room-dialog-card-icon svg {
+  width: 28px;
+  height: 28px;
+}
+.room-dialog-card-info h3 {
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 6px;
+}
+.room-dialog-card-info p {
+  font-size: 12px;
+  color: #a7a7a7;
+  max-width: 320px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* Buttons */
+.room-dialog-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 24px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+.room-dialog-btn.primary {
+  width: 100%;
+  background: #1ed760;
+  color: #000;
+  font-weight: 800;
+}
+.room-dialog-btn.primary:hover {
+  background: #22e368;
+  transform: scale(1.02);
+}
+.room-dialog-btn.secondary {
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.15);
+}
+.room-dialog-btn.secondary:hover {
+  background: rgba(255,255,255,0.14);
+}
+.room-dialog-btn.danger {
+  background: rgba(235, 87, 87, 0.12);
+  color: #eb5757;
+  border: 1px solid rgba(235, 87, 87, 0.25);
+}
+.room-dialog-btn.danger:hover {
+  background: rgba(235, 87, 87, 0.22);
+}
+
+/* Divider */
+.room-dialog-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 18px 0;
+  color: #666;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.room-dialog-divider::before,
+.room-dialog-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.room-dialog-divider span {
+  padding: 0 10px;
+}
+
+/* Join Box */
+.room-dialog-join-box {
+  background: var(--surface-1, #222);
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.room-dialog-join-box label {
+  display: block;
+  font-size: 12px;
+  color: #b3b3b3;
+  margin-bottom: 8px;
+}
+.room-dialog-join-row {
+  display: flex;
+  gap: 8px;
+}
+.room-dialog-join-row input {
+  flex: 1;
+  background: #121212;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 20px;
+  padding: 8px 14px;
+  color: #fff;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 700;
+}
+.room-dialog-join-row input:focus {
+  outline: none;
+  border-color: #1ed760;
+}
+
+/* Active Room Styles */
+.room-dialog-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.room-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #1ed760;
+  font-size: 12px;
+  font-weight: 700;
+}
+.room-live-badge .pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #1ed760;
+  box-shadow: 0 0 8px #1ed760;
+  animation: pulse 1.8s infinite;
+}
+.room-role-badge {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.1);
+  color: #ddd;
+}
+.room-role-badge.is-host {
+  background: rgba(30,215,96,0.18);
+  color: #1ed760;
+  border: 1px solid rgba(30,215,96,0.3);
+}
+
+.room-dialog-field-block {
+  margin-bottom: 16px;
+}
+.room-field-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+.room-field-label span {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  color: #888;
+}
+.room-field-label small {
+  font-size: 11px;
+  color: #666;
+}
+
+/* Room Code Display */
+.room-code-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #121212;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  padding: 8px 14px;
+}
+.room-code-text {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 6px;
+  color: #1ed760;
+  font-family: monospace, ui-monospace;
+}
+
+/* Copy button */
+.room-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 16px;
+  padding: 6px 12px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.room-copy-btn:hover {
+  background: rgba(255,255,255,0.15);
+  color: #1ed760;
+}
+.room-copy-btn svg {
+  width: 14px;
+  height: 14px;
+}
+.room-copy-btn.copied {
+  background: #1ed760;
+  color: #000;
+  border-color: #1ed760;
+}
+
+/* Link Box */
+.room-link-box {
+  display: flex;
+  gap: 8px;
+  background: #121212;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  padding: 6px 8px 6px 12px;
+}
+.room-link-box input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #aaa;
+  font-size: 12px;
+  text-overflow: ellipsis;
+}
+.room-link-box input:focus {
+  outline: none;
+  color: #fff;
+}
+
+/* Track Card */
+.room-dialog-track-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #121212;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+.room-track-thumb {
+  width: 46px;
+  height: 46px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #282828;
+  flex-shrink: 0;
+}
+.room-track-info {
+  flex: 1;
+  min-width: 0;
+}
+.room-track-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.room-track-artist {
+  font-size: 12px;
+  color: #a7a7a7;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.room-track-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.06);
+  color: #a7a7a7;
+}
+.room-track-status.playing {
+  background: rgba(30,215,96,0.15);
+  color: #1ed760;
+}
+
+/* Members */
+.room-count-badge {
+  font-size: 11px;
+  color: #1ed760;
+  background: rgba(30,215,96,0.12);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.room-dialog-members {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 6px;
+  max-height: 140px;
+  overflow-y: auto;
+}
+.room-dialog-member-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 8px;
+}
+.room-member-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #34463d;
+  color: #1ed760;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.room-member-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.room-member-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.room-member-role-tag {
+  font-size: 10px;
+  color: #1ed760;
+  background: rgba(30,215,96,0.12);
+  padding: 1px 6px;
+  border-radius: 6px;
+}
+.room-member-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #1ed760;
+  margin-left: auto;
+}
+
+/* Bottom Actions */
+.room-dialog-bottom-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}

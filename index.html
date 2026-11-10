@@ -98,6 +98,124 @@
       khác đang tìm kiếm. Kết nối qua Internet, không giới hạn khoảng cách Bluetooth. Đóng cửa sổ hoặc nhấn “Hủy tìm
       kiếm” để ngừng chia sẻ.</p>
   </dialog>
+
+  <!-- ══════════════════════ ROOM DIALOG (TẠO & QUẢN LÝ PHÒNG) ══════════════════════ -->
+  <dialog class="room-dialog" id="room-dialog" aria-labelledby="room-dialog-title">
+    <header class="room-dialog-header">
+      <div>
+        <span class="eyebrow">SPOTISIX · NGHE CHUNG</span>
+        <h2 id="room-dialog-title">Phòng nghe nhạc</h2>
+      </div>
+      <button class="dialog-close" type="button" onclick="closeRoomDialog()" aria-label="Đóng">×</button>
+    </header>
+
+    <!-- State 1: Chưa tạo phòng -->
+    <div class="room-dialog-section" id="room-dialog-idle">
+      <p class="room-dialog-desc">Tạo phòng để cùng nghe nhạc trực tiếp với bạn bè theo thời gian thực.</p>
+      
+      <div class="room-dialog-card create-card">
+        <div class="room-dialog-card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
+            <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
+          </svg>
+        </div>
+        <div class="room-dialog-card-info">
+          <h3>Tạo phòng của bạn</h3>
+          <p>Bạn sẽ là Host, đồng bộ bài hát đang phát cho mọi người trong phòng.</p>
+        </div>
+        <button class="room-dialog-btn primary" id="room-dialog-create-btn" type="button" onclick="handleDialogCreateRoom()">
+          ＋ Tạo phòng ngay
+        </button>
+      </div>
+
+      <div class="room-dialog-divider"><span>HOẶC</span></div>
+
+      <div class="room-dialog-join-box">
+        <label for="room-dialog-join-input">Tham gia phòng có sẵn bằng mã:</label>
+        <div class="room-dialog-join-row">
+          <input type="text" id="room-dialog-join-input" maxlength="6" placeholder="Mã 6 ký tự..." autocomplete="off" />
+          <button class="room-dialog-btn secondary" type="button" onclick="handleDialogJoinRoom()">Vào phòng</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- State 2: Đang trong phòng -->
+    <div class="room-dialog-section hidden" id="room-dialog-active">
+      <div class="room-dialog-status-bar">
+        <span class="room-live-badge"><span class="pulse-dot"></span> Đang hoạt động</span>
+        <span class="room-role-badge is-host" id="room-dialog-role-badge">Host</span>
+      </div>
+
+      <!-- 1. MÃ PHÒNG -->
+      <div class="room-dialog-field-block">
+        <div class="room-field-label">
+          <span>MÃ PHÒNG</span>
+          <small>Chia sẻ mã này để bạn bè nhập vào</small>
+        </div>
+        <div class="room-code-display">
+          <strong class="room-code-text" id="room-dialog-code-value">------</strong>
+          <button class="room-copy-btn" type="button" onclick="copyRoomDialogCode()" title="Sao chép mã phòng">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            <span id="room-copy-code-label">Sao chép mã</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. LINK PHÒNG -->
+      <div class="room-dialog-field-block">
+        <div class="room-field-label">
+          <span>LINK THAM GIA PHÒNG</span>
+          <small>Gửi link để bạn bè mở là vào thẳng phòng</small>
+        </div>
+        <div class="room-link-box">
+          <input type="text" id="room-dialog-link-input" readonly value="" />
+          <button class="room-copy-btn" type="button" onclick="copyRoomDialogLink()" title="Sao chép link mời">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+            <span id="room-copy-link-label">Sao chép link</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 3. TÊN BÀI HÁT ĐANG PHÁT -->
+      <div class="room-dialog-field-block">
+        <div class="room-field-label">
+          <span>BÀI HÁT ĐANG PHÁT TRONG PHÒNG</span>
+        </div>
+        <div class="room-dialog-track-card">
+          <img class="room-track-thumb" id="room-dialog-track-img" src="quan-son-tu.jpg" alt="" />
+          <div class="room-track-info">
+            <h4 class="room-track-title" id="room-dialog-track-title">Chưa phát nhạc</h4>
+            <p class="room-track-artist" id="room-dialog-track-artist">SpotiSix</p>
+          </div>
+          <span class="room-track-status playing" id="room-dialog-track-status">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M8 5v14l11-7z"/></svg>
+            <span>Đang phát</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- 4. SỐ LƯỢNG NGƯỜI TRONG PHÒNG -->
+      <div class="room-dialog-field-block">
+        <div class="room-field-label">
+          <span>NGƯỜI TRONG PHÒNG</span>
+          <strong class="room-count-badge" id="room-dialog-member-count">1/6 người</strong>
+        </div>
+        <ul class="room-dialog-members" id="room-dialog-members-list">
+        </ul>
+      </div>
+
+      <!-- Actions -->
+      <div class="room-dialog-bottom-actions">
+        <button class="room-dialog-btn secondary" type="button" onclick="showView('listen-together'); closeRoomDialog();">
+          Mở trang nghe chung toàn màn hình ↗
+        </button>
+        <button class="room-dialog-btn danger" type="button" onclick="handleDialogLeaveRoom()">
+          Rời phòng
+        </button>
+      </div>
+    </div>
+  </dialog>
   <dialog class="playlist-dialog" id="playlist-dialog" aria-labelledby="playlist-dialog-title">
     <form id="playlist-form" onsubmit="createPlaylist(event)">
       <button class="dialog-close" type="button" onclick="closePlaylistDialog()" aria-label="Đóng">×</button>
@@ -312,6 +430,16 @@
               d="M5.64 5.64a9 9 0 0 0 0 12.72m12.72 0a9 9 0 0 0 0-12.72M8.46 8.46a5 5 0 0 0 0 7.08m7.08 0a5 5 0 0 0 0-7.08" />
           </svg>
           <span>Ở gần</span>
+        </button>
+        <button class="room-trigger" id="topbar-room-btn" type="button" onclick="openRoomDialog()"
+          aria-label="Tạo phòng nghe nhạc cùng bạn bè" title="Tạo phòng nghe chung">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+          <span id="topbar-room-btn-text">Tạo phòng</span>
         </button>
         <button class="queue-toggle" onclick="toggleQueuePanel()" aria-label="Hiện hoặc ẩn danh sách đang phát"><svg
             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">

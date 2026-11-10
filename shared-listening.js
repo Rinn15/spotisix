@@ -33,6 +33,7 @@ let roomHostId = null;
 let roomHostName = '';
 let activeInvite = null;
 let hostAudioStream = null;
+let localDemoRoom = null;
 let hostStateTimer = null;
 let hostRoomJoinPromise = null;
 let guestClockTimer = null;
@@ -193,7 +194,9 @@ window.leaveSharedListening = async function leaveSharedListening() {
   if (roomChannel) {
     const channel = roomChannel;
     roomChannel = null;
-    await window.getNearbySupabaseClient?.()?.removeChannel(channel);
+    try {
+      await window.getNearbySupabaseClient?.()?.removeChannel(channel);
+    } catch {}
   }
   roomId = null;
   pendingRoomId = null;
@@ -201,14 +204,18 @@ window.leaveSharedListening = async function leaveSharedListening() {
   roomHostId = null;
   roomHostName = '';
   hostAudioStream = null;
+  localDemoRoom = null;
   banner.classList.add('hidden');
   roomIndicator.classList.add('hidden');
   roomIndicatorMembers.textContent = '';
   document.body.classList.remove('has-shared-listening-room');
   window.clearSharedAudio?.();
+  window.dispatchEvent(new CustomEvent('spotisix:shared-room-updated', {
+    detail: { active: false },
+  }));
 };
 
-window.isSharedListeningActive = () => Boolean(roomRole);
+window.isSharedListeningActive = () => Boolean(roomRole || localDemoRoom);
 
 window.addEventListener('spotisix:playback-change', event => {
   if (roomRole === 'host' && roomChannel) {

@@ -234,15 +234,28 @@ img { display: block; max-width: 100%; }
   display: flex; align-items: center; justify-content: center;
   font-size: 13px; font-weight: 700;
 }
-.nearby-trigger {
+.nearby-trigger,
+.room-trigger {
   display: inline-flex; align-items: center; justify-content: center; gap: 7px;
   min-height: 36px; padding: 0 12px; border-radius: 20px;
   color: var(--text-secondary); background: var(--surface-1);
   font-size: 12px; font-weight: 700; white-space: nowrap;
   transition: var(--trans-fast);
+  cursor: pointer;
+  border: none;
 }
-.nearby-trigger:hover, .nearby-trigger:focus-visible { color: var(--text-primary); background: var(--surface-2); }
-.nearby-trigger svg { width: 17px; height: 17px; }
+.nearby-trigger:hover, .nearby-trigger:focus-visible,
+.room-trigger:hover, .room-trigger:focus-visible { color: var(--text-primary); background: var(--surface-2); }
+.nearby-trigger svg,
+.room-trigger svg { width: 17px; height: 17px; }
+.room-trigger.in-room {
+  background: rgba(30, 215, 96, 0.16);
+  color: #1ed760;
+  border: 1px solid rgba(30, 215, 96, 0.4);
+}
+.room-trigger.in-room:hover {
+  background: rgba(30, 215, 96, 0.28);
+}
 .topbar-title { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
 
 /* Scroll container */
@@ -1758,7 +1771,8 @@ input:focus-visible {
   .app-topbar .header-search input { font-size: 11px; }
   .app-topbar .header-search-shortcut { display: none; }
   .topbar-actions { flex: 0 0 auto; gap: 4px; }
-  .nearby-trigger { width: 32px; min-width: 32px; height: 32px; }
+  .nearby-trigger,
+  .room-trigger { width: 32px; min-width: 32px; height: 32px; }
   .app-topbar .queue-toggle { display: none; }
   .app-topbar .global-profile-trigger { width: 32px; height: 32px; flex-basis: 32px; }
   .content-scroll { height: auto; min-height: 0; padding-bottom: 18px; }
@@ -1872,7 +1886,8 @@ input:focus-visible {
   .app-topbar .header-search { gap: 5px; padding-inline: 7px; }
   .app-topbar .header-search > svg { width: 16px; height: 16px; }
   .topbar-actions { gap: 2px; }
-  .nearby-trigger { width: 29px; min-width: 29px; }
+  .nearby-trigger,
+  .room-trigger { width: 29px; min-width: 29px; }
   .app-topbar .global-profile-trigger { width: 29px; height: 29px; flex-basis: 29px; }
   .npb-right .karaoke-player-button,
   .npb-right .lyrics-player-button { width: 25px; flex-basis: 25px; }
@@ -3239,8 +3254,10 @@ body.queue-hidden .queue-panel { display: none; }
   .topbar-start { gap: 4px; }
   .app-topbar { gap: 8px; }
   .topbar-actions { gap: 5px; }
-  .nearby-trigger span { display: none; }
-  .nearby-trigger { width: 34px; padding: 0; }
+  .nearby-trigger span,
+  .room-trigger span { display: none; }
+  .nearby-trigger,
+  .room-trigger { width: 34px; padding: 0; }
 }
 
 .nearby-dialog {
@@ -3309,8 +3326,10 @@ body.queue-hidden .queue-panel { display: none; }
   .home-dashboard #view-home .hero-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .home-dashboard #view-home .hero-card { min-height: 52px; }
   .home-dashboard #view-home .hero-card-img { width: 52px; height: 52px; }
-  .nearby-trigger { width: 36px; min-width: 36px; padding: 0; }
-  .nearby-trigger span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+  .nearby-trigger,
+  .room-trigger { width: 36px; min-width: 36px; padding: 0; }
+  .nearby-trigger span,
+  .room-trigger span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
   .nearby-dialog { padding: 22px 18px; }
 }
 
@@ -3387,7 +3406,8 @@ body.queue-hidden .queue-panel { display: none; }
   .app-topbar .header-search input { font-size: 11px; }
   .app-topbar .header-search-shortcut { display: none; }
   .topbar-actions { flex: 0 0 auto; gap: 4px; }
-  .nearby-trigger { width: 32px; min-width: 32px; height: 32px; }
+  .nearby-trigger,
+  .room-trigger { width: 32px; min-width: 32px; height: 32px; }
   .app-topbar .queue-toggle { display: none; }
   .app-topbar .global-profile-trigger { width: 32px; height: 32px; flex-basis: 32px; }
   .content-scroll { height: auto; min-height: 0; padding-bottom: 18px; }
@@ -3496,7 +3516,8 @@ body.queue-hidden .queue-panel { display: none; }
   .app-topbar .header-search { gap: 5px; padding-inline: 7px; }
   .app-topbar .header-search > svg { width: 16px; height: 16px; }
   .topbar-actions { gap: 2px; }
-  .nearby-trigger { width: 29px; min-width: 29px; }
+  .nearby-trigger,
+  .room-trigger { width: 29px; min-width: 29px; }
   .app-topbar .global-profile-trigger { width: 29px; height: 29px; flex-basis: 29px; }
   .npb-right .karaoke-player-button,
   .npb-right .lyrics-player-button { width: 25px; flex-basis: 25px; }
