@@ -23,6 +23,20 @@
   const roleLabel = $('#lt-role-label');
   const copyCodeButton = $('#lt-copy-code');
   const copyLinkButton = $('#lt-copy-link');
+  const roomDialog = document.getElementById('room-dialog');
+  const roomDialogIdle = document.getElementById('room-dialog-idle');
+  const roomDialogActive = document.getElementById('room-dialog-active');
+  const roomDialogCreateButton = document.getElementById('room-dialog-create-btn');
+  const roomDialogJoinInput = document.getElementById('room-dialog-join-input');
+  const roomDialogCode = document.getElementById('room-dialog-code-value');
+  const roomDialogLink = document.getElementById('room-dialog-link-input');
+  const roomDialogRole = document.getElementById('room-dialog-role-badge');
+  const roomDialogMembers = document.getElementById('room-dialog-members-list');
+  const roomDialogMemberCount = document.getElementById('room-dialog-member-count');
+  const roomDialogTrackTitle = document.getElementById('room-dialog-track-title');
+  const roomDialogTrackArtist = document.getElementById('room-dialog-track-artist');
+  const roomDialogTrackImage = document.getElementById('room-dialog-track-img');
+  const roomDialogTrackStatus = document.getElementById('room-dialog-track-status');
 
   let activeRoomCode = '';
   let lastMembers = [];
@@ -31,6 +45,11 @@
     status.textContent = message;
     status.classList.toggle('is-error', isError);
     status.classList.remove('hidden');
+  }
+
+  function notifyRoomDialog(message, isError = false) {
+    notify(message, isError);
+    window.showAppToast?.(message);
   }
 
   function setBusy(button, busy, label) {
@@ -63,6 +82,142 @@
     url.hash = 'listen-together';
     return url.toString();
   }
+
+  function renderRoomDialogTrack() {
+    const track = window.getSharedAudioTrack?.();
+    roomDialogTrackTitle.textContent = track?.title || 'Chưa phát nhạc';
+    roomDialogTrackArtist.textContent = track?.artist || 'SpotiSix';
+    if (track?.img) roomDialogTrackImage.src = track.img;
+    roomDialogTrackStatus.classList.toggle('playing', Boolean(track?.isPlaying));
+    roomDialogTrackStatus.querySelector('span').textContent = track?.isPlaying ? 'Đang phát' : 'Đang tạm dừng';
+  }
+
+  function renderRoomDialog(state = window.getSharedListeningRoomState?.()) {
+    const isActive = Boolean(state?.active);
+    roomDialogIdle.classList.toggle('hidden', isActive);
+    roomDialogActive.classList.toggle('hidden', !isActive);
+
+    const topbarButton = document.getElementById('topbar-room-btn');
+    const topbarButtonText = document.getElementById('topbar-room-btn-text');
+    topbarButton?.classList.toggle('in-room', isActive);
+    if (topbarButtonText) topbarButtonText.textContent = isActive ? 'Phòng của tôi' : 'Tạo phòng';
+    if (topbarButton) {
+      topbarButton.setAttribute('aria-label', isActive ? 'Mở phòng nghe chung hiện tại' : 'Tạo phòng nghe nhạc cùng bạn bè');
+      topbarButton.title = isActive ? 'Mở phòng nghe chung' : 'Tạo phòng nghe chung';
+    }
+
+    if (!isActive) return;
+
+    const code = state.roomCode || '';
+    const members = Array.isArray(state.members) ? state.members : [];
+    roomDialogCode.textContent = code || '------';
+    roomDialogLink.value = code ? makeInviteUrl(code) : '';
+    roomDialogRole.textContent = state.role === 'host' ? 'Host' : 'Thành viên';
+    roomDialogRole.classList.toggle('is-host', state.role === 'host');
+    roomDialogMemberCount.textContent = `${members.length}/6 người`;
+    roomDialogMembers.replaceChildren();
+
+    members.forEach(member => {
+      const item = document.createElement('li');
+      item.className = 'room-dialog-member-item';
+      const avatar = document.createElement('span');
+      avatar.className = 'room-member-avatar';
+      avatar.textContent = initials(member.name);
+      const info = document.createElement('span');
+      info.className = 'room-member-info';
+      const name = document.createElement('span');
+      name.className = 'room-member-name';
+      name.textContent = member.name || 'Người nghe';
+      const role = document.createElement('span');
+      role.className = 'room-member-role-tag';
+      role.textContent = member.role === 'host' ? 'Host' : 'Thành viên';
+      const dot = document.createElement('span');
+      dot.className = 'room-member-dot';
+      info.append(name, role);
+      item.append(avatar, info, dot);
+      roomDialogMembers.append(item);
+    });
+
+    renderRoomDialogTrack();
+  }
+
+  window.openRoomDialog = function openRoomDialog() {
+    renderRoomDialog();
+    if (!roomDialog.open) roomDialog.showModal();
+  };
+
+  window.closeRoomDialog = function closeRoomDialog() {
+    if (roomDialog.open) roomDialog.close();
+  };
+
+  async function copyRoomDialogText(value, successMessage) {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      notifyRoomDialog(successMessage);
+    } catch (error) {
+      console.error('Không thể sao chép thông tin phòng.', error);
+      notifyRoomDialog('Không thể sao chép tự động. Hãy chọn và sao chép nội dung thủ công.', true);
+    }
+  }
+
+  window.copyRoomDialogCode = () => copyRoomDialogText(roomDialogCode.textContent, 'Đã sao chép mã phòng.');
+  window.copyRoomDialogLink = () => copyRoomDialogText(roomDialogLink.value, 'Đã sao chép link mời.');
+
+  window.handleDialogCreateRoom = async function handleDialogCreateRoom() {
+    setBusy(roomDialogCreateButton, true, 'Đang tạo phòng…');
+    try {
+      if (typeof window.createSharedListeningRoom !== 'function') {
+        throw new Error('Chức năng tạo phòng hiện không khả dụng.');
+      }
+      await window.createSharedListeningRoom();
+      renderRoomDialog();
+      notifyRoomDialog('Đã tạo phòng. Sao chép mã hoặc link để mời bạn bè.');
+    } catch (error) {
+      notifyRoomDialog(error?.message || 'Không thể tạo phòng nghe chung.', true);
+    } finally {
+      setBusy(roomDialogCreateButton, false);
+    }
+  };
+
+  window.handleDialogJoinRoom = async function handleDialogJoinRoom() {
+    const code = roomDialogJoinInput.value.trim().toUpperCase();
+    if (!/^[A-Z0-9]{6}$/.test(code)) {
+      notifyRoomDialog('Mã phòng phải gồm đúng 6 ký tự chữ hoặc số.', true);
+      roomDialogJoinInput.focus();
+      return;
+    }
+    const joinButton = roomDialogJoinInput.parentElement.querySelector('button');
+    setBusy(joinButton, true, 'Đang tham gia…');
+    try {
+      await window.joinSharedListeningRoomByCode(code);
+      renderRoomDialog();
+      notifyRoomDialog('Đã tham gia phòng nghe chung.');
+    } catch (error) {
+      notifyRoomDialog(error?.message || 'Không thể tham gia phòng. Kiểm tra mã và kết nối.', true);
+    } finally {
+      setBusy(joinButton, false);
+    }
+  };
+
+  window.handleDialogLeaveRoom = async function handleDialogLeaveRoom() {
+    if (!window.confirm('Bạn muốn rời phòng nghe chung?')) return;
+    try {
+      await window.leaveSharedListening?.();
+      roomDialogJoinInput.value = '';
+      renderRoomDialog();
+      notifyRoomDialog('Bạn đã rời phòng nghe chung.');
+    } catch (error) {
+      notifyRoomDialog(error?.message || 'Không thể rời phòng.', true);
+    }
+  };
+
+  roomDialogJoinInput.addEventListener('input', () => {
+    roomDialogJoinInput.value = roomDialogJoinInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+  });
+  roomDialogJoinInput.addEventListener('keydown', event => {
+    if (event.key === 'Enter') window.handleDialogJoinRoom();
+  });
 
   async function copyText(value, successMessage) {
     try {
@@ -239,7 +394,11 @@
 
   window.addEventListener('spotisix:shared-room-updated', (event) => {
     renderRoom(event.detail);
+    renderRoomDialog(event.detail);
   });
+  window.addEventListener('spotisix:playback-change', renderRoomDialogTrack);
+  window.addEventListener('spotisix:shared-playback-updated', renderRoomDialogTrack);
+  window.addEventListener('spotisix:track-change', renderRoomDialogTrack);
 
   // Sidebar navigation uses the existing showView() routing.
   window.openListenTogether = () => {

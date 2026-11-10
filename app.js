@@ -281,12 +281,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   window.getSharedAudioTrack = function getSharedAudioTrack() {
     const song = songs[state.currentSong];
+    const track = sharedTrackMetadata || song;
     return {
-      ...song,
-      id: song.id || `${song.title}::${song.artist}`,
+      ...track,
+      id: track.trackId || track.id || `${track.title}::${track.artist}`,
       currentTime: audioPlayer?.currentTime || 0,
       isPlaying: state.isPlaying,
       audioElement: audioPlayer,
+      audioSrc: sharedTrackMetadata ? '' : song.audioSrc,
     };
   };
   window.setSharedListeningRole = function setSharedListeningRole(role) {
@@ -313,6 +315,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     state.elapsed = snapshot.currentTime;
     state.progress = snapshot.duration ? snapshot.currentTime / snapshot.duration : 0;
     state.isPlaying = snapshot.isPlaying;
+    window.dispatchEvent(new CustomEvent('spotisix:shared-playback-updated', { detail: sharedTrackMetadata }));
     document.getElementById('npb-title').textContent = snapshot.title;
     document.getElementById('npb-artist').textContent = snapshot.artist;
     document.getElementById('expanded-title').textContent = snapshot.title;
@@ -437,6 +440,13 @@ function getMoodTrackIndices(moodId, filterTag = 'Tất cả') {
     : indices.map(({ index }) => index).slice(0, 8);
   moodRecommendationCache.set(cacheKey, diverseIndices);
   return [...diverseIndices];
+}
+
+function getMoodTrackAlbumLabel(song) {
+  const album = String(song?.album || '').trim();
+  return album && album.toLocaleLowerCase('vi') !== 'thư viện spotisix'
+    ? album
+    : song?.title || 'Bài hát';
 }
 
 function setActiveMood(moodId, shouldScroll = false) {
@@ -751,7 +761,7 @@ function renderMoodRecommendations(moodId, filterTag = activeMoodFilterTag) {
           <p class="track-artist">${song.artist}</p>
         </div>
       </div>
-      <div class="col-album">${song.album}</div>
+      <div class="col-album">${getMoodTrackAlbumLabel(song)}</div>
       <div class="col-vibe">
         <span class="mood-tag-chip" style="color: ${mood.accent}; border-color: ${mood.accent}33; background: ${mood.accent}14">
           ${song.tags?.[0] || '#' + mood.name.split(' ')[0]}
@@ -942,7 +952,7 @@ function renderMoodView() {
                     <p class="track-artist">${song.artist}</p>
                   </div>
                 </div>
-                <div class="col-album">${song.album}</div>
+                <div class="col-album">${getMoodTrackAlbumLabel(song)}</div>
                 <div class="col-vibe">
                   <span class="mood-tag-chip" style="color: ${activeMood.accent}; border-color: ${activeMood.accent}33; background: ${activeMood.accent}14">
                     ${song.tags?.[0] || '#' + activeMood.name.split(' ')[0]}
@@ -4194,10 +4204,6 @@ function escapeSearchHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
-}
-
-function highlightMatch(text, query) {
-  return escapeSearchHtml(text || '');
 }
 
 function handleSearch(q) {

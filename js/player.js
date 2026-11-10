@@ -248,7 +248,7 @@ function renderPlayerMoodRecs(moodId, filterTag) {
           <p class="mpr-track-artist">${song.artist}</p>
         </div>
       </div>
-      <div class="mpr-track-album">${song.album}</div>
+      <div class="mpr-track-album">${typeof getMoodTrackAlbumLabel === 'function' ? getMoodTrackAlbumLabel(song) : song.album}</div>
       <div>
         <span class="mpr-track-tag" style="color: ${mood.accent}; border-color: ${mood.accent}33; background: ${mood.accent}14;">
           ${song.tags?.[0] || '#' + mood.name.split(' ')[0]}

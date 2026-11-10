@@ -4552,16 +4552,6 @@ body.queue-hidden .queue-panel { display: none; }
   align-items: center !important;
 }
 
-/* ─── SEARCH HIGHLIGHT RESET (NO GREEN BADGES) ───────────────────── */
-.search-highlight {
-  background: transparent !important;
-  color: inherit !important;
-  font-weight: inherit !important;
-  padding: 0 !important;
-  text-shadow: none !important;
-  border-radius: 0 !important;
-}
-
 /* ─── SIDEBAR LIBRARY DIRECT SONGS / ITEMS ───────────────────────── */
 .sidebar-song-item {
   display: flex;
