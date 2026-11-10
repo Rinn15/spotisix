@@ -54,7 +54,7 @@ window.inviteForSharedListening = async function inviteForSharedListening(target
     return;
   }
   const isAlreadyInRoom = Boolean(roomChannel && roomId && roomRole);
-  if (!isAlreadyInRoom && !getHostAudioStream()) return;
+  if (!isAlreadyInRoom && !prepareHostAudioSharing()) return;
 
   const inviteRoomId = roomId || pendingRoomId || globalThis.crypto?.randomUUID?.();
   if (!inviteRoomId) {
@@ -216,6 +216,7 @@ window.leaveSharedListening = async function leaveSharedListening() {
 };
 
 window.isSharedListeningActive = () => Boolean(roomRole || localDemoRoom);
+window.getSharedListeningRole = () => roomRole;
 
 window.addEventListener('spotisix:playback-change', event => {
   if (roomRole === 'host' && roomChannel) {
@@ -238,6 +239,9 @@ function getSharedAudioTrackSnapshot() {
     album: track.album,
     img: track.img,
     duration: track.duration,
+    audioSrc: track.audioSrc || '',
+    lrc: track.lrc || '',
+    lyrics: track.lyrics || '',
     currentTime: track.currentTime,
     isPlaying: track.isPlaying,
     // Mốc thời gian của máy Host; Guest dùng để bù thời gian truyền trạng thái.
@@ -275,6 +279,20 @@ function getHostAudioStream() {
   }
 }
 
+function prepareHostAudioSharing() {
+  const track = window.getSharedAudioTrack?.();
+  const hasShareableAudioFile = Boolean(track?.audioSrc && !/^(blob:|data:)/i.test(track.audioSrc));
+  const audio = track?.audioElement;
+  const canCaptureAudio = typeof audio?.captureStream === 'function' ||
+    typeof audio?.mozCaptureStream === 'function';
+  hostAudioStream = canCaptureAudio ? getHostAudioStream() : null;
+  if (hostAudioStream || hasShareableAudioFile) return true;
+  if (!canCaptureAudio) {
+    showAppToast('Không có tệp nhạc công khai hoặc luồng âm thanh để chia sẻ. Hãy phát nhạc đã tải lên.');
+  }
+  return false;
+}
+
 async function respondToInvite(invite, accepted) {
   if (!discoveryChannel || !ownSessionKey) return;
   const status = await discoveryChannel.send({
@@ -294,8 +312,9 @@ async function joinRoom({ roomId: requestedRoomId, role, hostId, hostName }) {
   if (roomChannel) await window.leaveSharedListening();
   const client = window.getNearbySupabaseClient?.();
   if (!client) throw new Error('Đăng nhập và kết nối Supabase trước khi mở phòng nghe chung.');
-  if (role === 'host') hostAudioStream = getHostAudioStream();
-  if (role === 'host' && !hostAudioStream) throw new Error('Không có luồng âm thanh để chia sẻ.');
+  if (role === 'host' && !prepareHostAudioSharing()) {
+    throw new Error('Không có tệp nhạc công khai hoặc luồng âm thanh để chia sẻ. Hãy phát nhạc đã tải lên.');
+  }
 
   roomId = requestedRoomId;
   if (role === 'host') pendingRoomId = null;

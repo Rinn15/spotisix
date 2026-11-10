@@ -4,6 +4,7 @@ import { isAbsolute, relative, resolve, sep } from 'node:path';
 
 const runtimeAssets = [
   'app.js',
+  'karaoke.js',
   'supabase-config.js',
   'nearby.js',
   'shared-listening.js',

@@ -208,6 +208,8 @@
 
       <!-- Actions -->
       <div class="room-dialog-bottom-actions">
+        <button class="room-dialog-btn secondary hidden" id="room-dialog-audio-enable" type="button">Bật âm thanh</button>
+        <button class="room-dialog-btn secondary" type="button" onclick="toggleLyrics()">Lời bài hát</button>
         <button class="room-dialog-btn secondary" type="button" onclick="showView('listen-together'); closeRoomDialog();">
           Mở trang nghe chung toàn màn hình ↗
         </button>
@@ -618,11 +620,6 @@
       </section>
     </div>
 
-    <div class="lt-rules" id="lt-rules">
-      <div><strong>Quy tắc phòng nghe chung</strong>2–6 người · Host–thành viên tối đa 600 km</div>
-      <div><strong class="lt-private">Vị trí riêng tư</strong>Xin quyền trước khi kiểm tra · Không chia sẻ tọa độ công khai</div>
-    </div>
-
     <section class="lt-room-card hidden" id="lt-room-panel" aria-live="polite">
       <header class="lt-room-heading">
         <div><h1 id="lt-room-title">Phòng nghe chung</h1><p id="lt-role-label">Bạn đang là Host</p></div>
@@ -649,10 +646,10 @@
             </div>
           </section>
 
-          <section class="lt-host-controls">
-            <strong>Host controls</strong>
-            <p>Play / Pause · Next / Previous · Seek → đồng bộ mọi người</p>
-          </section>
+          <div class="lt-playback-actions">
+            <button class="lt-button lt-button-secondary hidden" id="lt-audio-enable" type="button">Bật âm thanh</button>
+            <button class="lt-button lt-button-secondary" id="lt-lyrics-button" type="button">Lời bài hát</button>
+          </div>
         </div>
 
         <aside class="lt-room-card lt-participants">
@@ -1417,6 +1414,7 @@
   <script src="supabase-config.js" vite-ignore></script>
   <script src="js/recommendation.js" vite-ignore></script>
   <script src="app.js" vite-ignore></script>
+  <script src="karaoke.js" vite-ignore></script>
   <script type="module" src="nearby.js"></script>
   <script type="module" src="shared-listening.js"></script>
   <script src="js/player.js" vite-ignore></script>

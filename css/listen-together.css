@@ -45,6 +45,8 @@
 .lt-track-copy small { color: #1ed760; font-size: 10px; font-weight: 800; letter-spacing: .1em; }
 .lt-track-copy strong { display: block; color: #fff; font-size: 20px; margin: 7px 0 4px; }
 .lt-track-copy span { color: #a7a7a7; font-size: 13px; }
+.lt-playback-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.lt-playback-actions .lt-button { min-width: 150px; }
 .lt-host-controls strong { color: #fff; }
 .lt-host-controls p { color: #a7a7a7; margin: 8px 0 0; font-size: 13px; }
 .lt-participants { min-height: 360px; }

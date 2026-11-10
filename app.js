@@ -182,7 +182,11 @@ let spotifyTracks = [];
 let audioPlayer = null;
 let sharedListeningRole = null;
 let sharedRemoteAudio = false;
+let sharedDirectAudio = false;
+let sharedAudioNeedsGesture = false;
 let sharedTrackMetadata = null;
+let previousSharedTrackId = null;
+let sharedFallbackStream = null;
 let spotifySearchTimeout = null;
 let spotifySearchRequestId = 0;
 const publishedTrackIndexes = new Map();
@@ -274,6 +278,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       album: song.album,
       img: song.img,
       duration: song.duration,
+      audioSrc: song.audioSrc || '',
+      lrc: song.lrc || '',
+      lyrics: song.lyrics || '',
       currentTime: audioPlayer?.currentTime || 0,
       isPlaying: state.isPlaying,
       timestamp: Date.now(),
@@ -285,10 +292,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     return {
       ...track,
       id: track.trackId || track.id || `${track.title}::${track.artist}`,
-      currentTime: audioPlayer?.currentTime || 0,
+      currentTime: sharedRemoteAudio ? state.elapsed : (audioPlayer?.currentTime || 0),
       isPlaying: state.isPlaying,
       audioElement: audioPlayer,
-      audioSrc: sharedTrackMetadata ? '' : song.audioSrc,
+      audioSrc: sharedTrackMetadata?.audioSrc || (sharedTrackMetadata ? '' : song.audioSrc),
     };
   };
   window.setSharedListeningRole = function setSharedListeningRole(role) {
@@ -302,15 +309,65 @@ document.addEventListener('DOMContentLoaded', async () => {
       album: snapshot.album,
       img: snapshot.img || 'album_lumina.jpg',
       duration: snapshot.duration,
+      audioSrc: snapshot.audioSrc || '',
+      lrc: snapshot.lrc || '',
+      lyrics: snapshot.lyrics || '',
     };
+    const isNewSharedTrack = previousSharedTrackId !== sharedTrackMetadata.trackId;
+    previousSharedTrackId = sharedTrackMetadata.trackId;
+    if (isNewSharedTrack) sharedAudioNeedsGesture = false;
+    const directSource = sharedTrackMetadata.audioSrc;
+    const canPlayDirectly = directSource && !/^(blob:|data:)/i.test(directSource);
+    if (canPlayDirectly) {
+      sharedRemoteAudio = true;
+      sharedDirectAudio = true;
+      audioPlayer.removeAttribute('crossorigin');
+      audioPlayer.srcObject = null;
+      const sourceUrl = new URL(directSource, window.location.href).href;
+      if (audioPlayer.src !== sourceUrl) {
+        audioPlayer.src = sourceUrl;
+        audioPlayer.load();
+      }
+      if (isNewSharedTrack || Math.abs(audioPlayer.currentTime - snapshot.currentTime) > 1.5) {
+        const syncPosition = () => {
+          if (sharedDirectAudio && sharedTrackMetadata?.trackId === snapshot.trackId &&
+              Number.isFinite(snapshot.currentTime) && Number.isFinite(audioPlayer.duration)) {
+            audioPlayer.currentTime = Math.max(0, Math.min(snapshot.currentTime, audioPlayer.duration));
+          }
+        };
+        if (audioPlayer.readyState >= HTMLMediaElement.HAVE_METADATA) syncPosition();
+        else audioPlayer.addEventListener('loadedmetadata', syncPosition, { once: true });
+      }
+    } else {
+      sharedDirectAudio = false;
+      if (isNewSharedTrack) {
+        audioPlayer.pause();
+        audioPlayer.removeAttribute('src');
+        audioPlayer.load();
+      }
+    }
+    if (isNewSharedTrack) {
+      window.dispatchEvent(new CustomEvent('spotisix:track-change', {
+        detail: { ...sharedTrackMetadata },
+      }));
+    }
     // Không gán audioPlayer.currentTime cho luồng WebRTC:
     // currentTime của MediaStream là thời gian phát luồng nhận, không phải
     // vị trí bài hát gốc và thường không seek được. Vị trí hiển thị lấy từ
     // snapshot của Host đã được bù độ trễ trong shared-listening.js.
-    if (sharedRemoteAudio && snapshot.isPlaying && audioPlayer.paused) {
-      audioPlayer.play().catch(error => showAppToast(`Không thể phát âm thanh chung: ${error.message}`));
+    if (sharedRemoteAudio && snapshot.isPlaying && audioPlayer.paused && !sharedAudioNeedsGesture) {
+      audioPlayer.play().then(() => {
+        sharedAudioNeedsGesture = false;
+        window.dispatchEvent(new CustomEvent('spotisix:shared-audio-ready'));
+      }).catch(error => {
+        sharedAudioNeedsGesture = true;
+        window.dispatchEvent(new CustomEvent('spotisix:shared-audio-blocked', { detail: { message: error.message } }));
+      });
     } else if (sharedRemoteAudio && !snapshot.isPlaying && !audioPlayer.paused) {
       audioPlayer.pause();
+    } else if (!snapshot.isPlaying) {
+      sharedAudioNeedsGesture = false;
+      window.dispatchEvent(new CustomEvent('spotisix:shared-audio-ready'));
     }
     state.elapsed = snapshot.currentTime;
     state.progress = snapshot.duration ? snapshot.currentTime / snapshot.duration : 0;
@@ -332,14 +389,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateProgress();
   };
   window.attachSharedAudioStream = async function attachSharedAudioStream(stream) {
+    if (sharedDirectAudio) {
+      sharedFallbackStream = stream;
+      return;
+    }
     sharedRemoteAudio = true;
+    sharedAudioNeedsGesture = false;
     audioPlayer.pause();
     audioPlayer.removeAttribute('src');
     audioPlayer.srcObject = stream;
     try {
       await audioPlayer.play();
+      window.dispatchEvent(new CustomEvent('spotisix:shared-audio-ready'));
     } catch (error) {
+      sharedAudioNeedsGesture = true;
+      window.dispatchEvent(new CustomEvent('spotisix:shared-audio-blocked', { detail: { message: error.message } }));
       showAppToast(`Chạm nút phát để nghe âm thanh chung: ${error.message}`);
+    }
+  };
+  window.resumeSharedAudio = async function resumeSharedAudio() {
+    if (!sharedRemoteAudio || !audioPlayer) throw new Error('Bạn chưa tham gia phòng nghe chung.');
+    try {
+      await audioPlayer.play();
+      sharedAudioNeedsGesture = false;
+      window.dispatchEvent(new CustomEvent('spotisix:shared-audio-ready'));
+    } catch (error) {
+      sharedAudioNeedsGesture = true;
+      window.dispatchEvent(new CustomEvent('spotisix:shared-audio-blocked', { detail: { message: error.message } }));
+      throw error;
     }
   };
   window.clearSharedAudio = function clearSharedAudio() {
@@ -348,13 +425,30 @@ document.addEventListener('DOMContentLoaded', async () => {
       audioPlayer.srcObject = null;
     }
     sharedRemoteAudio = false;
+    sharedDirectAudio = false;
+    sharedAudioNeedsGesture = false;
     sharedTrackMetadata = null;
+    previousSharedTrackId = null;
+    sharedFallbackStream = null;
     sharedListeningRole = null;
     state.isPlaying = false;
+    audioPlayer?.setAttribute('crossorigin', 'anonymous');
     if (audioPlayer && songs[state.currentSong]?.audioSrc) audioPlayer.src = songs[state.currentSong].audioSrc;
     updatePlayerUI();
   };
   audioPlayer.addEventListener('error', () => {
+    if (sharedDirectAudio && sharedFallbackStream?.getAudioTracks().some(track => track.readyState === 'live')) {
+      sharedDirectAudio = false;
+      void window.attachSharedAudioStream(sharedFallbackStream);
+      return;
+    }
+    if (sharedRemoteAudio) {
+      window.dispatchEvent(new CustomEvent('spotisix:shared-audio-blocked', {
+        detail: { message: 'Không thể tải âm thanh của Host. Kiểm tra quyền truy cập tệp nhạc hoặc kết nối mạng.' },
+      }));
+      showAppToast('Không thể tải âm thanh của Host. Kiểm tra quyền truy cập tệp nhạc hoặc kết nối mạng.');
+      return;
+    }
     if (songs[state.currentSong]?.audioSrc) showAppToast('Không thể phát tệp âm thanh này. Hãy thử định dạng MP3, WAV hoặc M4A.');
   });
   updatePlayerUI();
@@ -4047,6 +4141,7 @@ function updateNativeAudioProgress() {
 }
 
 function updateNativeAudioDuration() {
+  if (sharedRemoteAudio) return;
   const song = songs[state.currentSong];
   if (!song?.audioSrc || !Number.isFinite(audioPlayer.duration)) return;
   song.duration = Math.floor(audioPlayer.duration);

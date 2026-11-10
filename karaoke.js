@@ -3,7 +3,7 @@ const dialog = document.getElementById('karaoke-dialog');
 const vocalSlider = document.getElementById('karaoke-vocal');
 const vocalValue = document.getElementById('karaoke-vocal-value');
 const statusText = document.getElementById('karaoke-status');
-const lyricsContainer = document.getElementById('karaoke-lyrics');
+const lyricsContainer = document.getElementById('karaoke-lyrics') || document.createElement('div');
 const lyricsDialog = document.getElementById('lyrics-dialog');
 const lyricsTrackLabel = document.getElementById('lyrics-track-label');
 const lyricsStatus = document.getElementById('lyrics-status');
@@ -21,6 +21,7 @@ let processing = false;
 let activeTrackUrl = '';
 
 window.toggleKaraoke = function toggleKaraoke() {
+  if (!toggle || !dialog) return;
   if (karaoke) {
     stopKaraoke();
     return;
@@ -31,14 +32,14 @@ window.toggleKaraoke = function toggleKaraoke() {
 };
 
 window.closeKaraokeDialog = function closeKaraokeDialog() {
-  if (dialog.open) dialog.close();
+  if (dialog?.open) dialog.close();
   if (!karaoke) stopKaraoke();
 };
 
-dialog.addEventListener('click', event => {
+dialog?.addEventListener('click', event => {
   if (event.target === dialog) window.closeKaraokeDialog();
 });
-dialog.addEventListener('cancel', () => {
+dialog?.addEventListener('cancel', () => {
   if (!karaoke) stopKaraoke();
 });
 
@@ -78,7 +79,7 @@ window.addEventListener('spotisix:track-change', event => {
   void loadLyrics(track.title, track.artist, track);
 });
 
-vocalSlider.addEventListener('input', () => {
+vocalSlider?.addEventListener('input', () => {
   vocalValue.textContent = `${vocalSlider.value}%`;
   const expVocalSlider = document.getElementById('exp-vocal-slider');
   const expVocalVal = document.getElementById('exp-vocal-val');
@@ -119,6 +120,7 @@ player.addEventListener('timeupdate', () => {
   syncStemPosition();
   renderCurrentLyric();
 });
+window.addEventListener('spotisix:shared-playback-updated', renderCurrentLyric);
 player.addEventListener('seeked', syncStemPosition);
 player.addEventListener('ended', () => void syncStemPlayback(false));
 player.addEventListener('loadedmetadata', updateKaraokeAvailability);
@@ -127,6 +129,7 @@ player.addEventListener('emptied', updateKaraokeAvailability);
 function updateKaraokeAvailability() {
   const track = window.getSharedAudioTrack?.();
   activeTrackUrl = track?.audioSrc || '';
+  if (!toggle) return;
   toggle.disabled = !activeTrackUrl || window.isSharedListeningActive?.() || processing;
   toggle.title = activeTrackUrl ? 'Hát karaoke' : 'Nhập tệp nhạc để bật karaoke';
   if (karaoke && currentFileUrl !== activeTrackUrl) stopKaraoke();
@@ -590,7 +593,10 @@ function scrollElementIntoContainerCenter(container, element) {
 
 function renderCurrentLyric() {
   if (!lyrics.length) return;
-  const index = lyrics.findLastIndex(line => line.time <= player.currentTime);
+  const playbackTime = window.isSharedListeningActive?.()
+    ? (window.getSharedAudioTrack?.()?.currentTime ?? player.currentTime)
+    : player.currentTime;
+  const index = lyrics.findLastIndex(line => line.time <= playbackTime);
   const activeIndex = index >= 0 ? index : 0;
   const line = lyrics[activeIndex];
   lyricsContainer.textContent = line.text || '♪';
@@ -621,6 +627,7 @@ function renderLyricsList() {
     row.className = 'lyrics-line';
     row.textContent = line.text || '♪';
     row.addEventListener('click', () => {
+      if (window.getSharedListeningRole?.() === 'guest') return;
       player.currentTime = line.time;
       renderCurrentLyric();
     });
@@ -630,6 +637,7 @@ function renderLyricsList() {
     expRow.className = 'lyrics-line exp-lyric-item';
     expRow.textContent = line.text || '♪';
     expRow.addEventListener('click', () => {
+      if (window.getSharedListeningRole?.() === 'guest') return;
       player.currentTime = line.time;
       renderCurrentLyric();
     });
@@ -667,12 +675,12 @@ function renderPlainLyrics(text) {
 }
 
 function setStatus(message) {
-  statusText.textContent = message;
+  if (statusText) statusText.textContent = message;
 }
 
-dialog.addEventListener('close', () => {
+dialog?.addEventListener('close', () => {
   if (!karaoke) window.setKaraokeMuted?.(false);
 });
 
 updateKaraokeAvailability();
-window.isKaraokeActive = () => Boolean(karaoke || processing || toggle.disabled);
+window.isKaraokeActive = () => Boolean(karaoke || processing || toggle?.disabled);

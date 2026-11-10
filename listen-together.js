@@ -23,6 +23,8 @@
   const roleLabel = $('#lt-role-label');
   const copyCodeButton = $('#lt-copy-code');
   const copyLinkButton = $('#lt-copy-link');
+  const enableAudioButton = $('#lt-audio-enable');
+  const dialogEnableAudioButton = document.getElementById('room-dialog-audio-enable');
   const roomDialog = document.getElementById('room-dialog');
   const roomDialogIdle = document.getElementById('room-dialog-idle');
   const roomDialogActive = document.getElementById('room-dialog-active');
@@ -54,6 +56,15 @@
     roomDialogFeedback.classList.toggle('is-error', isError);
     roomDialogFeedback.classList.remove('hidden');
     if (!roomDialog.open) window.showAppToast?.(message);
+  }
+
+  async function enableSharedAudio() {
+    try {
+      await window.resumeSharedAudio?.();
+      notifyRoomDialog('Đã bật âm thanh.');
+    } catch (error) {
+      notifyRoomDialog(error?.message || 'Không thể bật âm thanh phòng.', true);
+    }
   }
 
   function setBusy(button, busy, label) {
@@ -386,6 +397,9 @@
     if (event.key === 'Enter') joinRoom();
   });
   $('#lt-leave-button').addEventListener('click', leaveRoom);
+  enableAudioButton.addEventListener('click', () => void enableSharedAudio());
+  dialogEnableAudioButton.addEventListener('click', () => void enableSharedAudio());
+  $('#lt-lyrics-button').addEventListener('click', () => window.toggleLyrics?.());
   copyCodeButton.addEventListener('click', () => {
     if (activeRoomCode) void copyText(activeRoomCode, 'Đã sao chép mã phòng.');
   });
@@ -404,6 +418,14 @@
   window.addEventListener('spotisix:playback-change', renderRoomDialogTrack);
   window.addEventListener('spotisix:shared-playback-updated', renderRoomDialogTrack);
   window.addEventListener('spotisix:track-change', renderRoomDialogTrack);
+  window.addEventListener('spotisix:shared-audio-blocked', () => {
+    enableAudioButton.classList.remove('hidden');
+    dialogEnableAudioButton.classList.remove('hidden');
+  });
+  window.addEventListener('spotisix:shared-audio-ready', () => {
+    enableAudioButton.classList.add('hidden');
+    dialogEnableAudioButton.classList.add('hidden');
+  });
 
   // Sidebar navigation uses the existing showView() routing.
   window.openListenTogether = () => {
