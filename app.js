@@ -333,6 +333,70 @@ document.addEventListener('DOMContentLoaded', async () => {
       audioSrc: sharedTrackMetadata?.audioSrc || (sharedTrackMetadata ? '' : song.audioSrc),
     };
   };
+  window.restoreSharedListeningPlayback = async function restoreSharedListeningPlayback(snapshot) {
+    if (!snapshot?.trackId) return false;
+    const index = songs.findIndex(song =>
+      String(song.id || `${song.title}::${song.artist}`) === String(snapshot.trackId));
+    if (index < 0) return false;
+
+    state.currentSong = index;
+    state.playbackQueue = [index, ...songs.map((_, songIndex) => songIndex).filter(songIndex => songIndex !== index)];
+    state.queuePosition = 0;
+    state.elapsed = Math.max(0, Number(snapshot.currentTime) || 0);
+    state.progress = snapshot.duration ? state.elapsed / snapshot.duration : 0;
+    state.isPlaying = false;
+
+    const song = songs[index];
+    if (audioPlayer && song.audioSrc) {
+      audioPlayer.pause();
+      audioPlayer.src = song.audioSrc;
+      audioPlayer.load();
+      if (audioPlayer.readyState < HTMLMediaElement.HAVE_METADATA) {
+        await new Promise((resolve, reject) => {
+          const timeout = window.setTimeout(() => {
+            cleanup();
+            reject(new Error('Hết thời gian chờ tải bài hát đã phát trước đó.'));
+          }, 10000);
+          const cleanup = () => {
+            window.clearTimeout(timeout);
+            audioPlayer.removeEventListener('loadedmetadata', onLoaded);
+            audioPlayer.removeEventListener('error', onError);
+          };
+          const onLoaded = () => {
+            cleanup();
+            resolve();
+          };
+          const onError = () => {
+            cleanup();
+            reject(new Error('Không tải được bài hát đã phát trước đó.'));
+          };
+          audioPlayer.addEventListener('loadedmetadata', onLoaded, { once: true });
+          audioPlayer.addEventListener('error', onError, { once: true });
+        });
+      }
+      if (Number.isFinite(audioPlayer.duration)) {
+        state.elapsed = Math.min(state.elapsed, audioPlayer.duration);
+        audioPlayer.currentTime = state.elapsed;
+      }
+      if (snapshot.isPlaying) {
+        try {
+          await audioPlayer.play();
+          state.isPlaying = true;
+        } catch (error) {
+          showAppToast(`Đã khôi phục phòng nhưng trình duyệt chặn tự phát. Nhấn Phát để tiếp tục: ${error.message}`);
+        }
+      }
+    } else if (snapshot.isPlaying) {
+      state.isPlaying = true;
+      startTimer();
+    }
+
+    state.progress = song.duration ? state.elapsed / song.duration : 0;
+    updatePlayerUI();
+    window.dispatchEvent(new CustomEvent('spotisix:track-change', { detail: { ...song } }));
+    buildUpNext();
+    return true;
+  };
   window.setSharedListeningRole = function setSharedListeningRole(role) {
     sharedListeningRole = role;
   };
@@ -3176,11 +3240,12 @@ async function initializeAuth() {
       setAuthSession(session);
       if (event === 'SIGNED_IN' && session) {
         showEmailConfirmationSuccess(session.user);
-        void loadCommunityTracksOnStartup();
+        void loadCommunityTracksOnStartup().then(() => window.restoreSharedListeningRoom?.());
       }
     });
     setupNote.classList.add('hidden');
-    void loadCommunityTracksOnStartup();
+    await loadCommunityTracksOnStartup();
+    if (data.session) await window.restoreSharedListeningRoom?.();
   } catch (error) {
     setAuthStatus(error.message || 'Không thể khởi tạo đăng nhập. Kiểm tra cấu hình Supabase.', true);
   }

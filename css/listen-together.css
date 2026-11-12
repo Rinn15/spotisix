@@ -64,6 +64,20 @@
 .lt-empty-members { color: #a7a7a7; padding: 20px 0; }
 .lt-room-actions { display: flex; gap: 14px; margin-top: 20px; max-width: 650px; }
 .lt-room-actions .lt-button { min-width: 190px; }
+#lt-invite-button {
+  color: #041409;
+  background: linear-gradient(135deg, #45f27f, #1ed760);
+  box-shadow: 0 0 20px rgba(30, 215, 96, .3);
+  animation: room-invite-glow 2.2s ease-in-out infinite alternate;
+}
+#lt-invite-button:hover { box-shadow: 0 0 28px rgba(30, 215, 96, .55); }
+@keyframes room-invite-glow {
+  from { box-shadow: 0 0 12px rgba(30, 215, 96, .22); }
+  to { box-shadow: 0 0 24px rgba(30, 215, 96, .48); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #lt-invite-button { animation: none; }
+}
 @media (max-width: 900px) {
   .lt-grid, .lt-room-layout { grid-template-columns: 1fr; }
   .lt-participants { min-height: 0; }

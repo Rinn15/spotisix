@@ -19,6 +19,7 @@ const acceptInviteButton = inviteDialog.querySelector('#shared-invite-accept');
 const declineInviteButton = inviteDialog.querySelector('#shared-invite-decline');
 const roomIndicator = document.getElementById('shared-room-indicator');
 const roomIndicatorMembers = document.getElementById('shared-room-indicator-members');
+const roomSessionStorageKey = 'spotisix.sharedListeningRoom';
 const clientId = globalThis.crypto?.randomUUID?.() || `client-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const peerConnections = new Map();
 const pendingIceCandidates = new Map();
@@ -41,6 +42,39 @@ let distanceCheckInProgress = false;
 let distanceLimitTriggered = false;
 const pendingClockPings = new Map();
 const clockSync = { offsetMs: 0, rttMs: null, samples: 0 };
+let roomRestorePromise = null;
+
+function readSavedRoomSession() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(roomSessionStorageKey) || 'null');
+    if (!saved || !/^[A-Z0-9]{6}$/.test(saved.roomCode) ||
+        !['host', 'guest'].includes(saved.role)) return null;
+    return saved;
+  } catch (error) {
+    console.warn('Không thể đọc thông tin phòng nghe đã lưu.', error);
+    return null;
+  }
+}
+
+function saveRoomSession(snapshot) {
+  if (!roomId || !roomRole) return;
+  const saved = {
+    roomCode: roomId,
+    role: roomRole,
+    ...(snapshot ? { snapshot } : {}),
+  };
+  try {
+    localStorage.setItem(roomSessionStorageKey, JSON.stringify(saved));
+  } catch (error) {
+    console.warn('Không thể lưu thông tin phòng nghe.', error);
+  }
+}
+
+function saveCurrentHostSnapshot(snapshot) {
+  if (roomRole !== 'host' || !snapshot) return;
+  const saved = readSavedRoomSession();
+  saveRoomSession({ ...saved?.snapshot, ...snapshot });
+}
 
 window.setSharedListeningDiscoveryChannel = function setSharedListeningDiscoveryChannel(channel, sessionKey) {
   discoveryChannel = channel;
@@ -178,6 +212,11 @@ inviteDialog.addEventListener('cancel', event => {
 window.leaveSharedListening = async function leaveSharedListening() {
      
     const leavingRoomCode = roomId;
+    try {
+      localStorage.removeItem(roomSessionStorageKey);
+    } catch (error) {
+      console.warn('Không thể xóa thông tin phòng nghe đã lưu.', error);
+    }
     if (leavingRoomCode) {
         try {
             await callRoomAPI("leave_room", {
@@ -240,6 +279,7 @@ window.requestSharedPlaybackControl = async function requestSharedPlaybackContro
 
 window.addEventListener('spotisix:playback-change', event => {
   if (roomRole === 'host' && roomChannel) {
+    saveCurrentHostSnapshot(event.detail);
     void sendRoomMessage('playback-state', { snapshot: event.detail });
   }
 });
@@ -268,6 +308,9 @@ function getSharedAudioTrackSnapshot() {
     album: track.album,
     img: track.img,
     duration: track.duration,
+    audioSrc: track.audioSrc || '',
+    lrc: track.lrc || '',
+    lyrics: track.lyrics || '',
     currentTime: track.currentTime,
     isPlaying: track.isPlaying,
     // Mốc thời gian của máy Host; Guest dùng để bù thời gian truyền trạng thái.
@@ -442,14 +485,18 @@ async function joinRoom({ roomId: requestedRoomId, role, hostId, hostName }) {
       location: roomLocation,
     });
     if (trackStatus !== 'ok') throw new Error(`Không thể kết nối phòng nghe chung (${trackStatus || 'Realtime'}).`);
+    saveRoomSession(role === 'host' ? getSharedAudioTrackSnapshot() : null);
     if (role === 'guest') {
       window.setSharedListeningRole?.('guest');
     } else {
       window.setSharedListeningRole?.('host');
       const snapshot = getSharedAudioTrackSnapshot();
+      saveCurrentHostSnapshot(snapshot);
       await sendRoomMessage('room-state', { snapshot });
       hostStateTimer = window.setInterval(() => {
-        void sendRoomMessage('playback-state', { snapshot: getSharedAudioTrackSnapshot() });
+        const currentSnapshot = getSharedAudioTrackSnapshot();
+        saveCurrentHostSnapshot(currentSnapshot);
+        void sendRoomMessage('playback-state', { snapshot: currentSnapshot });
       }, 1200);
     }
     if (role === 'guest') {
@@ -875,6 +922,34 @@ window.joinSharedListeningRoomByCode =
     });
     return true;
   };
+
+window.restoreSharedListeningRoom = function restoreSharedListeningRoom() {
+  if (roomRestorePromise) return roomRestorePromise;
+  const saved = readSavedRoomSession();
+  if (!saved || roomChannel) return Promise.resolve(false);
+  roomRestorePromise = (async () => {
+    if (saved.role === 'host') {
+      const restored = await window.restoreSharedListeningPlayback?.(saved.snapshot);
+      if (!restored) {
+        throw new Error('Không khôi phục được bài hát của Host. Hãy chọn và phát lại một bài.');
+      }
+    }
+    await joinRoom({
+      roomId: saved.roomCode,
+      role: saved.role,
+      hostId: saved.role === 'host' ? clientId : null,
+      hostName: saved.role === 'host' ? getLocalDisplayName() : 'Host',
+    });
+    window.showView?.('listen-together');
+    return true;
+  })().catch(error => {
+    showAppToast(`Không thể khôi phục phòng ${saved.roomCode}: ${error.message}`);
+    return false;
+  }).finally(() => {
+    roomRestorePromise = null;
+  });
+  return roomRestorePromise;
+};
 
 window.getSharedListeningRoomState = function getSharedListeningRoomState() {
   if (!roomChannel || !roomRole || !roomId) return { active: false };
