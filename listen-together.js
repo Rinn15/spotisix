@@ -340,10 +340,41 @@
     showRoom();
   }
 
-  async function refreshRoom() {
+
+async function refreshRoom() {
+
     const state = window.getSharedListeningRoomState?.();
-    if (state) renderRoom(state);
-  }
+
+    if (!state?.active) {
+        return;
+    }
+
+    try {
+
+        const databaseState =
+            await window.getPersistedSharedRoomState(
+                state.roomCode
+            );
+
+        
+        renderRoom({
+            ...state,
+            members: databaseState.members,
+            status: databaseState.status,
+            memberCount: databaseState.member_count,
+            maxMembers: databaseState.max_members
+        });
+
+    } catch (error) {
+
+        console.error(
+            "Không thể tải trạng thái phòng từ Database:",
+            error
+        );
+        renderRoom(state);
+    }
+}
+
 
   async function createRoom() {
     const button = $('#lt-create-button');

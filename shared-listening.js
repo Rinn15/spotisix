@@ -33,7 +33,6 @@ let roomHostId = null;
 let roomHostName = '';
 let activeInvite = null;
 let hostAudioStream = null;
-let localDemoRoom = null;
 let hostStateTimer = null;
 let hostRoomJoinPromise = null;
 let guestClockTimer = null;
@@ -54,7 +53,7 @@ window.inviteForSharedListening = async function inviteForSharedListening(target
     return;
   }
   const isAlreadyInRoom = Boolean(roomChannel && roomId && roomRole);
-  if (!isAlreadyInRoom && !prepareHostAudioSharing()) return;
+  if (!isAlreadyInRoom && !getHostAudioStream()) return;
 
   const inviteRoomId = roomId || pendingRoomId || globalThis.crypto?.randomUUID?.();
   if (!inviteRoomId) {
@@ -177,6 +176,20 @@ inviteDialog.addEventListener('cancel', event => {
 });
 
 window.leaveSharedListening = async function leaveSharedListening() {
+     
+    const leavingRoomCode = roomId;
+    if (leavingRoomCode) {
+        try {
+            await callRoomAPI("leave_room", {
+                p_room_code: leavingRoomCode
+            });
+        } catch (error) {
+            console.error(
+                "Không thể cập nhật trạng thái rời phòng:",
+                error
+            );
+        }
+    }
   window.clearInterval(hostStateTimer);
   window.clearInterval(guestClockTimer);
   hostStateTimer = null;
@@ -194,9 +207,7 @@ window.leaveSharedListening = async function leaveSharedListening() {
   if (roomChannel) {
     const channel = roomChannel;
     roomChannel = null;
-    try {
-      await window.getNearbySupabaseClient?.()?.removeChannel(channel);
-    } catch {}
+    await window.getNearbySupabaseClient?.()?.removeChannel(channel);
   }
   roomId = null;
   pendingRoomId = null;
@@ -204,44 +215,30 @@ window.leaveSharedListening = async function leaveSharedListening() {
   roomHostId = null;
   roomHostName = '';
   hostAudioStream = null;
-  localDemoRoom = null;
   banner.classList.add('hidden');
   roomIndicator.classList.add('hidden');
   roomIndicatorMembers.textContent = '';
   document.body.classList.remove('has-shared-listening-room');
   window.clearSharedAudio?.();
-  window.dispatchEvent(new CustomEvent('spotisix:shared-room-updated', {
-    detail: { active: false },
-  }));
 };
 
-window.isSharedListeningActive = () => Boolean(roomRole || localDemoRoom);
-window.getSharedListeningRole = () => roomRole;
-
-function getRoomAudioUrl(audioSrc) {
-  if (typeof audioSrc !== 'string' || !audioSrc.trim()) return '';
-  try {
-    const url = new URL(audioSrc, window.location.href);
-    return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
-  } catch {
-    return '';
-  }
-}
-
-function isLoopbackHostname(hostname) {
-  const host = hostname.toLowerCase().replace(/^\[|\]$/g, '');
-  return host === 'localhost' || host.endsWith('.localhost') ||
-    host === '::1' || /^127(?:\.\d{1,3}){3}$/.test(host);
-}
+window.isSharedListeningActive = () => Boolean(roomRole);
 
 window.addEventListener('spotisix:playback-change', event => {
   if (roomRole === 'host' && roomChannel) {
-    void sendRoomMessage('playback-state', {
-      snapshot: { ...event.detail, audioSrc: getRoomAudioUrl(event.detail?.audioSrc) },
-    });
+    void sendRoomMessage('playback-state', { snapshot: event.detail });
   }
 });
+function makeRoomInviteUrl(roomCode) {
 
+    const url = new URL(window.location.href);
+
+    url.searchParams.set("room", roomCode);
+
+    url.hash = "listen-together";
+
+    return url.toString();
+}
 function getLocalDisplayName() {
   const name = document.querySelector('.user-name')?.textContent?.trim();
   return name || document.querySelector('.topbar-avatar')?.textContent?.trim() || 'SpotiSix';
@@ -257,9 +254,6 @@ function getSharedAudioTrackSnapshot() {
     album: track.album,
     img: track.img,
     duration: track.duration,
-    audioSrc: getRoomAudioUrl(track.audioSrc),
-    lrc: track.lrc || '',
-    lyrics: track.lyrics || '',
     currentTime: track.currentTime,
     isPlaying: track.isPlaying,
     // Mốc thời gian của máy Host; Guest dùng để bù thời gian truyền trạng thái.
@@ -297,24 +291,6 @@ function getHostAudioStream() {
   }
 }
 
-function prepareHostAudioSharing() {
-  const track = window.getSharedAudioTrack?.();
-  const audioUrl = getRoomAudioUrl(track?.audioSrc);
-  if (!audioUrl) {
-    hostAudioStream = null;
-    showAppToast('Tệp này chỉ có trên thiết bị của bạn. Hãy chọn bài đã đăng lên thư viện công khai để mọi người nghe được.');
-    return false;
-  }
-  if (isLoopbackHostname(new URL(audioUrl).hostname)) {
-    hostAudioStream = null;
-    showAppToast('Bạn đang mở SpotiSix bằng localhost. Thiết bị khác không thể tải nhạc từ địa chỉ này; hãy dùng link deploy công khai.');
-    return false;
-  }
-
-  hostAudioStream = getHostAudioStream();
-  return true;
-}
-
 async function respondToInvite(invite, accepted) {
   if (!discoveryChannel || !ownSessionKey) return;
   const status = await discoveryChannel.send({
@@ -334,9 +310,8 @@ async function joinRoom({ roomId: requestedRoomId, role, hostId, hostName }) {
   if (roomChannel) await window.leaveSharedListening();
   const client = window.getNearbySupabaseClient?.();
   if (!client) throw new Error('Đăng nhập và kết nối Supabase trước khi mở phòng nghe chung.');
-  if (role === 'host' && !prepareHostAudioSharing()) {
-    throw new Error('Bài đang phát chỉ có trên thiết bị của bạn. Hãy chọn bài đã đăng lên thư viện công khai để mọi người nghe được.');
-  }
+  if (role === 'host') hostAudioStream = getHostAudioStream();
+  if (role === 'host' && !hostAudioStream) throw new Error('Không có luồng âm thanh để chia sẻ.');
 
   roomId = requestedRoomId;
   if (role === 'host') pendingRoomId = null;
@@ -733,26 +708,135 @@ function updateRoomBanner() {
 }));
 }
 
-window.createSharedListeningRoom = async function createSharedListeningRoom() {
-  if (roomChannel && roomRole) {
-    throw new Error(
-      "Bạn đang ở trong một phòng nghe chung. Hãy rời phòng trước.",
+
+async function callRoomAPI(functionName, params = {}) {
+    const client = window.getNearbySupabaseClient?.();
+
+    if (!client) {
+        throw new Error("Bạn cần đăng nhập Supabase.");
+    }
+
+    const { data, error } = await client.rpc(
+        functionName,
+        params
     );
-  }
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const bytes = new Uint8Array(6);
-  globalThis.crypto.getRandomValues(bytes);
-  const roomCode = Array.from(
-    bytes,
-    (value) => alphabet[value % alphabet.length],
-  ).join("");
-  await joinRoom({
-    roomId: roomCode,
-    role: "host",
-    hostId: clientId,
-    hostName: getLocalDisplayName(),
-  });
-  return { roomCode };
+
+    if (error) {
+        throw new Error(error.message);
+    }
+
+    if (data?.success === false) {
+        throw new Error(data.message || "Thao tác thất bại.");
+    }
+
+    return data;
+}
+
+
+window.createSharedListeningRoom = async function () {
+
+    if (roomChannel && roomRole) {
+        throw new Error("Bạn đang ở trong một phòng khác.");
+    }
+
+   
+    if (!getHostAudioStream()) {
+        throw new Error("Hãy phát nhạc trước khi tạo phòng.");
+    }
+
+    
+    const result = await callRoomAPI("create_room");
+
+    const roomCode = result.room_code;
+
+    try {
+
+        
+        await joinRoom({
+            roomId: roomCode,
+            role: "host",
+            hostId: window.getSpotiSixUserKey?.() || clientId,
+            hostName: getLocalDisplayName()
+        });
+
+        return {
+            roomCode: roomCode,
+            inviteUrl: makeRoomInviteUrl(roomCode)
+        };
+
+    } catch (error) {
+
+      
+        try {
+            await callRoomAPI("leave_room", {
+                p_room_code: roomCode
+            });
+        } catch (cleanupError) {
+            console.error("Lỗi dọn phòng:", cleanupError);
+        }
+
+        throw error;
+    }
+};
+
+
+
+window.joinSharedListeningRoomByCode =
+async function (roomCode) {
+
+    const code = String(roomCode || "")
+        .trim()
+        .toUpperCase();
+
+    if (!/^[A-Z0-9]{6}$/.test(code)) {
+        throw new Error("Mã phòng phải có 6 ký tự.");
+    }
+
+    if (roomChannel && roomRole) {
+        throw new Error(
+            "Bạn đang ở trong một phòng khác. Hãy rời phòng trước."
+        );
+    }
+
+  
+    await callRoomAPI("join_room", {
+        p_room_code: code
+    });
+
+    try {
+
+       
+        await joinRoom({
+            roomId: code,
+            role: "guest",
+            hostId: null,
+            hostName: "Host"
+        });
+
+        return true;
+
+    } catch (error) {
+
+      
+        try {
+            await callRoomAPI("leave_room", {
+                p_room_code: code
+            });
+        } catch (cleanupError) {
+            console.error("Lỗi dọn thành viên:", cleanupError);
+        }
+
+        throw error;
+    }
+};
+
+
+window.getPersistedSharedRoomState =
+async function (roomCode) {
+
+    return await callRoomAPI("get_room_state", {
+        p_room_code: roomCode
+    });
 };
 
 window.joinSharedListeningRoomByCode =
