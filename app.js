@@ -748,20 +748,6 @@ function scrollMoods(direction) {
   }
 }
 
-function selectMoodFilter() {
-  document.querySelectorAll('.home-filter-chip').forEach(c => c.classList.remove('active'));
-  const moodChip = document.getElementById('chip-mood');
-  if (moodChip) moodChip.classList.add('active');
-  const section = document.getElementById('mood-player-section');
-  if (section) {
-    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    section.classList.add('highlight-pulse');
-    setTimeout(() => section.classList.remove('highlight-pulse'), 1200);
-  } else {
-    showView('mood');
-  }
-}
-
 function shuffleArray(array) {
   const result = [...array];
 
@@ -4254,10 +4240,11 @@ function saveCurrentTrackToPlaylist(event) {
 
 window.setExpandedViewMode = function setExpandedViewMode(mode) {
   const player = document.getElementById('expanded-player');
-  if (!player) return;
+  if (!player || !['art', 'lyrics'].includes(mode)) return;
   player.scrollTop = 0;
   player.classList.remove('mode-art', 'mode-lyrics');
   player.classList.add(`mode-${mode}`);
+  document.getElementById('expanded-lyrics-stage')?.setAttribute('aria-hidden', String(mode !== 'lyrics'));
 
   const tabs = {
     art: document.getElementById('exp-tab-art'),
@@ -4317,7 +4304,6 @@ function updatePlayerUI() {
   syncLikeButtons();
   updateProgress();
   updateVolumeUI();
-  window.updateKaraokeAvailability?.();
 }
 
 function syncPlayIcons() {

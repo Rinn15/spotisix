@@ -510,17 +510,6 @@
 
         <!-- Hero Grid - Spotify Style -->
         <section class="hero-section">
-          <div class="home-filter-chips" aria-label="Bộ lọc trang chủ">
-            <button class="home-filter-chip active" type="button">Tất cả</button>
-            <button class="home-filter-chip" id="chip-mood" type="button" onclick="selectMoodFilter()">Tâm
-              trạng</button>
-            <button class="home-filter-chip" type="button"
-              onclick="showView('library');switchLibTab('songs')">Nhạc</button>
-            <button class="home-filter-chip" type="button"
-              onclick="showView('library');switchLibTab('albums')">Album</button>
-            <button class="home-filter-chip" type="button"
-              onclick="showView('library');switchLibTab('playlists')">Playlist</button>
-          </div>
           <div class="hero-greeting">
             <h1 id="greeting-text">Xin chào!</h1>
             <p>Chào mừng trở lại — Nhạc của bạn đang chờ.</p>
@@ -713,47 +702,6 @@
             <div class="category-card cat-reggae" onclick="searchCategory('Reggae')"><span>Reggae</span></div>
             <div class="category-card cat-metal" onclick="searchCategory('Metal')"><span>Metal</span></div>
           </div>
-          <section class="discover-albums" aria-labelledby="discover-albums-title">
-            <h2 id="discover-albums-title">Album nổi bật thế giới</h2>
-            <p class="discover-albums-note">Khám phá album kinh điển qua Spotify. Cần kết nối internet để xem nội dung.
-            </p>
-            <div class="discover-albums-grid">
-              <a class="discover-album-card discover-album-thriller"
-                href="https://open.spotify.com/search/album%3A%20Thriller%20Michael%20Jackson" target="_blank"
-                rel="noopener noreferrer"><span
-                  class="discover-album-art">THRILLER</span><strong>Thriller</strong><span>Michael Jackson ·
-                  Pop</span></a>
-              <a class="discover-album-card discover-album-abbey"
-                href="https://open.spotify.com/search/album%3A%20Abbey%20Road%20The%20Beatles" target="_blank"
-                rel="noopener noreferrer"><span class="discover-album-art">ABBEY<br />ROAD</span><strong>Abbey
-                  Road</strong><span>The Beatles · Rock</span></a>
-              <a class="discover-album-card discover-album-darkside"
-                href="https://open.spotify.com/search/album%3A%20The%20Dark%20Side%20of%20the%20Moon%20Pink%20Floyd"
-                target="_blank" rel="noopener noreferrer"><span
-                  class="discover-album-art">DARK<br />SIDE</span><strong>The Dark Side of the Moon</strong><span>Pink
-                  Floyd · Progressive rock</span></a>
-              <a class="discover-album-card discover-album-back"
-                href="https://open.spotify.com/search/album%3A%20Back%20in%20Black%20AC%2FDC" target="_blank"
-                rel="noopener noreferrer"><span class="discover-album-art">BACK<br />IN BLACK</span><strong>Back in
-                  Black</strong><span>AC/DC · Hard rock</span></a>
-              <a class="discover-album-card discover-album-rumours"
-                href="https://open.spotify.com/search/album%3A%20Rumours%20Fleetwood%20Mac" target="_blank"
-                rel="noopener noreferrer"><span
-                  class="discover-album-art">RUMOURS</span><strong>Rumours</strong><span>Fleetwood Mac · Rock</span></a>
-              <a class="discover-album-card discover-album-nevermind"
-                href="https://open.spotify.com/search/album%3A%20Nevermind%20Nirvana" target="_blank"
-                rel="noopener noreferrer"><span
-                  class="discover-album-art">NEVERMIND</span><strong>Nevermind</strong><span>Nirvana · Grunge</span></a>
-              <a class="discover-album-card discover-album-21"
-                href="https://open.spotify.com/search/album%3A%2021%20Adele" target="_blank"
-                rel="noopener noreferrer"><span class="discover-album-art">21</span><strong>21</strong><span>Adele · Pop
-                  / Soul</span></a>
-              <a class="discover-album-card discover-album-ram"
-                href="https://open.spotify.com/search/album%3A%20Random%20Access%20Memories%20Daft%20Punk"
-                target="_blank" rel="noopener noreferrer"><span class="discover-album-art">R.A.M.</span><strong>Random
-                  Access Memories</strong><span>Daft Punk · Electronic</span></a>
-            </div>
-          </section>
         </div>
       </div>
     </div>
@@ -1226,8 +1174,8 @@
 
     <!-- Main Stage Container -->
     <div class="expanded-stage" id="expanded-stage">
-      <!-- Synced Lyrics & Karaoke Center Stage -->
-      <div class="expanded-lyrics-stage" id="expanded-lyrics-stage">
+      <!-- Synced lyrics center stage -->
+      <div class="expanded-lyrics-stage" id="expanded-lyrics-stage" aria-hidden="true">
         <div class="exp-lyrics-header-panel">
           <div class="exp-lyrics-meta-info">
             <span class="exp-lyrics-badge" id="exp-lyrics-badge"><span class="badge-dot"></span> Lời bài hát đồng
@@ -1415,7 +1363,7 @@
   <script src="js/recommendation.js" vite-ignore></script>
   <script src="js/shared-playback-sync.js" vite-ignore></script>
   <script src="app.js" vite-ignore></script>
-  <script src="karaoke.js" vite-ignore></script>
+  <script src="lyrics.js" vite-ignore></script>
   <script type="module" src="nearby.js"></script>
   <script type="module" src="shared-listening.js"></script>
   <script src="js/player.js" vite-ignore></script>
