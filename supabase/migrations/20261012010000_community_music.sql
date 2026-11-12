@@ -1,3 +1,7 @@
+create extension if not exists pgcrypto with schema extensions;
+
+select encode(extensions.gen_random_bytes(3), 'hex');
+
 create table if not exists public.published_tracks (
   id uuid primary key default gen_random_uuid(),
   uploader_id uuid not null references auth.users (id) on delete cascade,
