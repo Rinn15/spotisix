@@ -224,6 +224,20 @@ window.leaveSharedListening = async function leaveSharedListening() {
 
 window.isSharedListeningActive = () => Boolean(roomRole);
 
+window.requestSharedPlaybackControl = async function requestSharedPlaybackControl(control) {
+  if (roomRole !== 'guest' || !roomChannel) {
+    throw new Error('Bạn chưa tham gia phòng nghe chung.');
+  }
+  const status = await roomChannel.send({
+    type: 'broadcast',
+    event: 'control-request',
+    payload: { ...control, fromId: clientId },
+  });
+  if (status !== 'ok') {
+    throw new Error(`Không thể gửi yêu cầu điều khiển (${status || 'Realtime'}).`);
+  }
+};
+
 window.addEventListener('spotisix:playback-change', event => {
   if (roomRole === 'host' && roomChannel) {
     void sendRoomMessage('playback-state', { snapshot: event.detail });
@@ -354,6 +368,12 @@ async function joinRoom({ roomId: requestedRoomId, role, hostId, hostName }) {
     if (roomRole === 'guest' && payload?.snapshot) {
       window.applySharedPlaybackSnapshot?.(getLatencyAdjustedSnapshot(payload.snapshot));
     }
+  });
+  channel.on('broadcast', { event: 'control-request' }, ({ payload }) => {
+    if (roomRole !== 'host' || !payload?.fromId || !payload.action) return;
+    const senderPresence = channel.presenceState()[payload.fromId];
+    if (!senderPresence?.some(entry => entry.role === 'guest')) return;
+    window.applySharedPlaybackControl?.(payload);
   });
   channel.on('broadcast', { event: 'clock-ping' }, ({ payload }) => {
     if (roomRole !== 'host' || !payload?.pingId || !Number.isFinite(payload.clientSentAt)) return;

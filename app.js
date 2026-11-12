@@ -271,7 +271,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
   });
-  function getSharedPlaybackSnapshot() {
+  window.getSharedPlaybackSnapshot = function getSharedPlaybackSnapshot() {
     const song = songs[state.currentSong];
     return {
       trackId: song.id || `${song.title}::${song.artist}`,
@@ -287,7 +287,40 @@ document.addEventListener('DOMContentLoaded', async () => {
       isPlaying: state.isPlaying,
       timestamp: Date.now(),
     };
-  }
+  };
+  window.applySharedPlaybackControl = function applySharedPlaybackControl(control) {
+    if (sharedListeningRole !== 'host' || !control) return;
+    if (control.action === 'play-track') {
+      const requestedId = String(control.trackId || '');
+      const index = songs.findIndex(song =>
+        String(song.id || `${song.title}::${song.artist}`) === requestedId);
+      if (index < 0) {
+        showAppToast('Bài hát bạn chọn không có trong thư viện của Host.');
+        return;
+      }
+      playSong(index);
+      return;
+    }
+    if (control.action === 'seek' && Number.isFinite(control.seconds)) {
+      const song = songs[state.currentSong];
+      const duration = Number.isFinite(audioPlayer?.duration) && audioPlayer.duration > 0
+        ? audioPlayer.duration
+        : song.duration;
+      state.elapsed = Math.max(0, Math.min(control.seconds, duration));
+      state.progress = duration ? state.elapsed / duration : 0;
+      if (song.audioSrc && audioPlayer && Number.isFinite(audioPlayer.duration)) {
+        audioPlayer.currentTime = state.elapsed;
+      }
+      updateProgress();
+      window.dispatchEvent(new CustomEvent('spotisix:playback-change', {
+        detail: window.getSharedPlaybackSnapshot(),
+      }));
+      return;
+    }
+    if (control.action === 'toggle-play') togglePlay();
+    else if (control.action === 'next') nextSong();
+    else if (control.action === 'previous') prevSong();
+  };
   window.getSharedAudioTrack = function getSharedAudioTrack() {
     const song = songs[state.currentSong];
     const track = sharedTrackMetadata || song;
@@ -670,11 +703,6 @@ function shuffleArray(array) {
 
 
 function playMoodTracks(moodId, shuffle = false) {
-  if (sharedListeningRole === 'guest') {
-    showAppToast('Chủ phòng điều khiển bài hát khi đang nghe chung.');
-    return;
-  }
-
   const mood = moodDefinitions.find(m => m.id === moodId);
   if (!mood) return;
 
@@ -692,6 +720,12 @@ function playMoodTracks(moodId, shuffle = false) {
   const queue = shuffle
     ? shuffleArray(tracks)
     : [...tracks];
+
+  if (sharedListeningRole === 'guest') {
+    playSong(queue[0]);
+    showAppToast(`Đang yêu cầu phát: ${mood.name}`);
+    return;
+  }
 
   state.playbackQueue = queue;
   state.queuePosition = 0;
@@ -3623,7 +3657,12 @@ function toggleQueuePanel(event) {
 // ─── Play Song ────────────────────────────────────────────────────
 function playSong(idx) {
   if (sharedListeningRole === 'guest') {
-    showAppToast('Chủ phòng điều khiển bài hát khi đang nghe chung.');
+    const song = songs[idx];
+    if (!song) return;
+    requestGuestPlaybackControl({
+      action: 'play-track',
+      trackId: song.id || `${song.title}::${song.artist}`,
+    });
     return;
   }
   if (!Number.isInteger(idx) || idx < 0 || idx >= songs.length) return;
@@ -3654,9 +3693,19 @@ function playSong(idx) {
   recordRecentSong(idx);
   if (sharedListeningRole === 'host') {
     window.dispatchEvent(new CustomEvent('spotisix:playback-change', {
-      detail: getSharedPlaybackSnapshot(),
+      detail: window.getSharedPlaybackSnapshot(),
     }));
   }
+}
+
+function requestGuestPlaybackControl(control) {
+  if (typeof window.requestSharedPlaybackControl !== 'function') {
+    showAppToast('Không thể gửi điều khiển tới Host. Hãy thử lại sau.');
+    return;
+  }
+  void window.requestSharedPlaybackControl(control).catch(error => {
+    showAppToast(error instanceof Error ? error.message : 'Không thể gửi điều khiển tới Host.');
+  });
 }
 
 function playPlaylist(idx) {
@@ -3671,7 +3720,7 @@ function playPlaylist(idx) {
 function togglePlay(e) {
   if (e) e.stopPropagation();
   if (sharedListeningRole === 'guest') {
-    showAppToast('Chủ phòng điều khiển bài hát khi đang nghe chung.');
+    requestGuestPlaybackControl({ action: 'toggle-play' });
     return;
   }
   if (songs[state.currentSong].audioSrc && audioPlayer) {
@@ -3738,7 +3787,7 @@ function startTimer() {
 function prevSong(e) {
   if (e) e.stopPropagation();
   if (sharedListeningRole === 'guest') {
-    showAppToast('Chủ phòng điều khiển bài hát khi đang nghe chung.');
+    requestGuestPlaybackControl({ action: 'previous' });
     return;
   }
   if (state.elapsed > 3) {
@@ -3756,7 +3805,7 @@ function prevSong(e) {
 function nextSong(e) {
   if (e) e.stopPropagation();
   if (sharedListeningRole === 'guest') {
-    showAppToast('Chủ phòng điều khiển bài hát khi đang nghe chung.');
+    requestGuestPlaybackControl({ action: 'next' });
     return;
   }
   if (!state.playbackQueue.length) return;
@@ -3826,23 +3875,31 @@ function toggleMute(e) {
 }
 
 // ─── Seek ────────────────────────────────────────────────────────
-function seekFromPointer(event) {
-  if (sharedListeningRole === 'guest') return;
+function seekFromPointer(event, commit = false) {
   const bar = event.currentTarget.querySelector('.npb-progress-bar, .expanded-progress-bar');
   if (!bar) return;
   const rect = bar.getBoundingClientRect();
   const frac = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
   const song = songs[state.currentSong];
-  const duration = song.audioSrc && audioPlayer && Number.isFinite(audioPlayer.duration) ? audioPlayer.duration : song.duration;
+  const duration = sharedListeningRole === 'guest' && Number.isFinite(sharedTrackMetadata?.duration)
+    ? sharedTrackMetadata.duration
+    : song.audioSrc && audioPlayer && Number.isFinite(audioPlayer.duration)
+      ? audioPlayer.duration
+      : song.duration;
   state.elapsed = frac * duration;
   state.progress = frac;
+  if (sharedListeningRole === 'guest') {
+    updateProgress();
+    if (commit) requestGuestPlaybackControl({ action: 'seek', seconds: state.elapsed });
+    return;
+  }
   if (song.audioSrc && audioPlayer && Number.isFinite(audioPlayer.duration)) {
     audioPlayer.currentTime = state.elapsed;
   }
   updateProgress();
   if (sharedListeningRole === 'host') {
     window.dispatchEvent(new CustomEvent('spotisix:playback-change', {
-      detail: getSharedPlaybackSnapshot(),
+      detail: window.getSharedPlaybackSnapshot(),
     }));
   }
 }
@@ -3864,18 +3921,17 @@ function updateSeek(event) {
 function finishSeek(event) {
   if (event.pointerId !== seekingPointerId) return;
   event.stopPropagation();
-  seekFromPointer(event);
+  seekFromPointer(event, true);
   seekingPointerId = null;
 }
 
 function handleSeekKeydown(event) {
-  if (sharedListeningRole === 'guest') {
-    event.preventDefault();
-    showAppToast('Chủ phòng điều khiển tiến độ khi đang nghe chung.');
-    return;
-  }
   const song = songs[state.currentSong];
-  const duration = song.audioSrc && audioPlayer && Number.isFinite(audioPlayer.duration) ? audioPlayer.duration : song.duration;
+  const duration = sharedListeningRole === 'guest' && Number.isFinite(sharedTrackMetadata?.duration)
+    ? sharedTrackMetadata.duration
+    : song.audioSrc && audioPlayer && Number.isFinite(audioPlayer.duration)
+      ? audioPlayer.duration
+      : song.duration;
   let nextTime = state.elapsed;
   if (event.key === 'ArrowRight' || event.key === 'ArrowUp') nextTime = Math.min(duration, nextTime + 5);
   else if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') nextTime = Math.max(0, nextTime - 5);
@@ -3886,11 +3942,16 @@ function handleSeekKeydown(event) {
   event.stopPropagation();
   state.elapsed = nextTime;
   state.progress = duration ? nextTime / duration : 0;
+  if (sharedListeningRole === 'guest') {
+    updateProgress();
+    requestGuestPlaybackControl({ action: 'seek', seconds: nextTime });
+    return;
+  }
   if (song.audioSrc && audioPlayer && Number.isFinite(audioPlayer.duration)) audioPlayer.currentTime = nextTime;
   updateProgress();
   if (sharedListeningRole === 'host') {
     window.dispatchEvent(new CustomEvent('spotisix:playback-change', {
-      detail: getSharedPlaybackSnapshot(),
+      detail: window.getSharedPlaybackSnapshot(),
     }));
   }
 }
@@ -3979,11 +4040,25 @@ function handlePlayerShortcuts(event) {
     event.preventDefault();
     togglePlay();
   } else if (event.key === 'ArrowRight') {
+    if (sharedListeningRole === 'guest') {
+      requestGuestPlaybackControl({
+        action: 'seek',
+        seconds: Math.min(sharedTrackMetadata?.duration || 0, state.elapsed + 5),
+      });
+      return;
+    }
     state.elapsed = Math.min(songs[state.currentSong].duration, state.elapsed + 5);
     state.progress = state.elapsed / songs[state.currentSong].duration;
     if (songs[state.currentSong].audioSrc && audioPlayer) audioPlayer.currentTime = state.elapsed;
     updateProgress();
   } else if (event.key === 'ArrowLeft') {
+    if (sharedListeningRole === 'guest') {
+      requestGuestPlaybackControl({
+        action: 'seek',
+        seconds: Math.max(0, state.elapsed - 5),
+      });
+      return;
+    }
     state.elapsed = Math.max(0, state.elapsed - 5);
     state.progress = state.elapsed / songs[state.currentSong].duration;
     if (songs[state.currentSong].audioSrc && audioPlayer) audioPlayer.currentTime = state.elapsed;
