@@ -6,6 +6,7 @@ const runtimeAssets = [
   'app.js',
   'karaoke.js',
   'supabase-config.js',
+  'js/shared-playback-sync.js',
   'nearby.js',
   'shared-listening.js',
   'js/player.js',

@@ -262,7 +262,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   audioPlayer.addEventListener('timeupdate', updateNativeAudioProgress);
   audioPlayer.addEventListener('loadedmetadata', updateNativeAudioDuration);
   audioPlayer.addEventListener('ended', handleNativeAudioEnded);
-  ['play', 'pause', 'seeked', 'timeupdate'].forEach(eventName => {
+  ['play', 'pause', 'seeked'].forEach(eventName => {
     audioPlayer.addEventListener(eventName, () => {
       if (sharedListeningRole === 'host') {
         window.dispatchEvent(new CustomEvent('spotisix:playback-change', {
@@ -434,7 +434,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       window.dispatchEvent(new CustomEvent('spotisix:shared-audio-blocked', { detail: { message: error.message } }));
     });
   }
-  window.applySharedPlaybackSnapshot = function applySharedPlaybackSnapshot(snapshot) {
+  window.applySharedPlaybackSnapshot = function applySharedPlaybackSnapshot(snapshot, { allowSeek = false } = {}) {
     sharedTrackMetadata = {
       trackId: snapshot.trackId || null,
       title: snapshot.title,
@@ -465,18 +465,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         audioPlayer.src = sourceUrl;
         audioPlayer.load();
       }
-      if (isNewSharedTrack || Math.abs(audioPlayer.currentTime - snapshot.currentTime) > 1.5) {
-        const syncPosition = () => {
-          if (sharedDirectAudio && sharedTrackMetadata?.trackId === snapshot.trackId &&
-              Number.isFinite(snapshot.currentTime) && Number.isFinite(audioPlayer.duration)) {
-            audioPlayer.currentTime = Math.max(0, Math.min(snapshot.currentTime, audioPlayer.duration));
-          }
-        };
-        if (audioPlayer.readyState >= HTMLMediaElement.HAVE_METADATA) syncPosition();
-        else audioPlayer.addEventListener('loadedmetadata', syncPosition, { once: true });
-      }
+      const syncPosition = () => {
+        if (!sharedDirectAudio || sharedTrackMetadata?.trackId !== snapshot.trackId ||
+            !Number.isFinite(snapshot.currentTime) || !Number.isFinite(audioPlayer.duration)) return;
+        const targetTime = Math.max(0, Math.min(snapshot.currentTime, audioPlayer.duration));
+        const drift = targetTime - audioPlayer.currentTime;
+        const correction = isNewSharedTrack
+          ? { seek: true, playbackRate: 1 }
+          : window.getSharedPlaybackCorrection(
+            drift,
+            Boolean(snapshot.isPlaying && !audioPlayer.paused),
+            allowSeek,
+          );
+        audioPlayer.playbackRate = correction.playbackRate;
+        if (correction.seek) audioPlayer.currentTime = targetTime;
+      };
+      if (audioPlayer.readyState >= HTMLMediaElement.HAVE_METADATA) syncPosition();
+      else if (isNewSharedTrack) audioPlayer.addEventListener('loadedmetadata', syncPosition, { once: true });
     } else {
       sharedDirectAudio = false;
+      audioPlayer.playbackRate = 1;
       if (isNewSharedTrack) {
         audioPlayer.pause();
         audioPlayer.removeAttribute('src');
@@ -563,6 +571,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (audioPlayer) {
       audioPlayer.pause();
       audioPlayer.srcObject = null;
+      audioPlayer.playbackRate = 1;
     }
     sharedRemoteAudio = false;
     sharedDirectAudio = false;

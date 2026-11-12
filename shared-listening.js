@@ -35,6 +35,7 @@ let roomHostName = '';
 let activeInvite = null;
 let hostAudioStream = null;
 let hostStateTimer = null;
+let hostPersistenceTimer = null;
 let hostRoomJoinPromise = null;
 let guestClockTimer = null;
 let roomLocation = null;
@@ -58,10 +59,19 @@ function readSavedRoomSession() {
 
 function saveRoomSession(snapshot) {
   if (!roomId || !roomRole) return;
+  const savedSnapshot = snapshot
+    ? {
+        trackId: snapshot.trackId,
+        currentTime: snapshot.currentTime,
+        duration: snapshot.duration,
+        isPlaying: snapshot.isPlaying,
+        timestamp: snapshot.timestamp,
+      }
+    : null;
   const saved = {
     roomCode: roomId,
     role: roomRole,
-    ...(snapshot ? { snapshot } : {}),
+    ...(savedSnapshot ? { snapshot: savedSnapshot } : {}),
   };
   try {
     localStorage.setItem(roomSessionStorageKey, JSON.stringify(saved));
@@ -230,8 +240,10 @@ window.leaveSharedListening = async function leaveSharedListening() {
         }
     }
   window.clearInterval(hostStateTimer);
+  window.clearInterval(hostPersistenceTimer);
   window.clearInterval(guestClockTimer);
   hostStateTimer = null;
+  hostPersistenceTimer = null;
   guestClockTimer = null;
   pendingClockPings.clear();
   roomLocation = null;
@@ -280,7 +292,7 @@ window.requestSharedPlaybackControl = async function requestSharedPlaybackContro
 window.addEventListener('spotisix:playback-change', event => {
   if (roomRole === 'host' && roomChannel) {
     saveCurrentHostSnapshot(event.detail);
-    void sendRoomMessage('playback-state', { snapshot: event.detail });
+    void sendRoomMessage('playback-change', { snapshot: event.detail });
   }
 });
 function makeRoomInviteUrl(roomCode) {
@@ -404,12 +416,17 @@ async function joinRoom({ roomId: requestedRoomId, role, hostId, hostName }) {
   });
   channel.on('broadcast', { event: 'playback-state' }, ({ payload }) => {
     if (roomRole === 'guest' && payload?.snapshot) {
-      window.applySharedPlaybackSnapshot?.(getLatencyAdjustedSnapshot(payload.snapshot));
+      window.applySharedPlaybackSnapshot?.(getLatencyAdjustedSnapshot(payload.snapshot), { allowSeek: false });
+    }
+  });
+  channel.on('broadcast', { event: 'playback-change' }, ({ payload }) => {
+    if (roomRole === 'guest' && payload?.snapshot) {
+      window.applySharedPlaybackSnapshot?.(getLatencyAdjustedSnapshot(payload.snapshot), { allowSeek: true });
     }
   });
   channel.on('broadcast', { event: 'room-state' }, ({ payload }) => {
     if (roomRole === 'guest' && payload?.snapshot) {
-      window.applySharedPlaybackSnapshot?.(getLatencyAdjustedSnapshot(payload.snapshot));
+      window.applySharedPlaybackSnapshot?.(getLatencyAdjustedSnapshot(payload.snapshot), { allowSeek: true });
     }
   });
   channel.on('broadcast', { event: 'control-request' }, ({ payload }) => {
@@ -494,10 +511,11 @@ async function joinRoom({ roomId: requestedRoomId, role, hostId, hostName }) {
       saveCurrentHostSnapshot(snapshot);
       await sendRoomMessage('room-state', { snapshot });
       hostStateTimer = window.setInterval(() => {
-        const currentSnapshot = getSharedAudioTrackSnapshot();
-        saveCurrentHostSnapshot(currentSnapshot);
-        void sendRoomMessage('playback-state', { snapshot: currentSnapshot });
+        void sendRoomMessage('playback-state', { snapshot: getSharedAudioTrackSnapshot() });
       }, 1200);
+      hostPersistenceTimer = window.setInterval(() => {
+        saveCurrentHostSnapshot(getSharedAudioTrackSnapshot());
+      }, 5000);
     }
     if (role === 'guest') {
       void sendClockPing();
@@ -509,7 +527,9 @@ async function joinRoom({ roomId: requestedRoomId, role, hostId, hostName }) {
     showAppToast(role === 'host' ? 'Đã tạo phòng nghe chung.' : `Đã tham gia nghe chung với ${hostName}.`);
   } catch (error) {
     window.clearInterval(hostStateTimer);
+    window.clearInterval(hostPersistenceTimer);
     hostStateTimer = null;
+    hostPersistenceTimer = null;
     for (const connection of peerConnections.values()) connection.close();
     peerConnections.clear();
     pendingIceCandidates.clear();
