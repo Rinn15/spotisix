@@ -5,7 +5,6 @@
 
 // ─── Module State ────────────────────────────────────────────────
 let playerActiveMoodId = null;   // syncs with app.js activeMoodId
-let playerActiveFilter = 'Tất cả';
 
 // ─── Font Awesome icon class mapping for each mood ──────────────
 const moodIconMap = {
@@ -100,7 +99,6 @@ function renderPlayerMoodCards() {
 // ─── Select a Mood ───────────────────────────────────────────────
 function selectPlayerMood(moodId) {
   playerActiveMoodId = moodId;
-  playerActiveFilter = 'Tất cả';
 
   // Sync with app-level state if available
   if (typeof activeMoodId !== 'undefined') {
@@ -114,17 +112,8 @@ function selectPlayerMood(moodId) {
   renderPlayerMoodRecs(moodId);
 }
 
-// ─── Scroll Mood Cards ───────────────────────────────────────────
-function scrollPlayerMoods(direction) {
-  const track = document.getElementById('player-mood-cards');
-  if (!track) return;
-  const scrollAmount = track.offsetWidth * 0.6;
-  track.scrollBy({ left: direction * scrollAmount, behavior: 'smooth' });
-}
-
 // ─── Render Recommended Songs Panel ──────────────────────────────
-function renderPlayerMoodRecs(moodId, filterTag) {
-  filterTag = filterTag || playerActiveFilter;
+function renderPlayerMoodRecs(moodId) {
   const panel = document.getElementById('player-mood-recs-panel');
   if (!panel) return;
 
@@ -133,7 +122,7 @@ function renderPlayerMoodRecs(moodId, filterTag) {
   if (!mood) return;
 
   const allSongs = (typeof songs !== 'undefined') ? songs : [];
-  const trackIndices = getPlayerMoodTracks(moodId, filterTag);
+  const trackIndices = getPlayerMoodTracks(moodId);
   const totalSec = trackIndices.reduce((s, idx) => s + (allSongs[idx]?.duration || 0), 0);
   const totalMin = Math.round(totalSec / 60);
   const iconClass = moodIconMap[moodId] || 'fa-solid fa-music';
@@ -189,15 +178,6 @@ function renderPlayerMoodRecs(moodId, filterTag) {
           <span>Đổi đề xuất</span>
         </button>
       </div>
-    </div>
-
-    <!-- Filter Tags -->
-    <div class="mpr-filter-bar" role="tablist" aria-label="Bộ lọc con của tâm trạng">
-      ${mood.tags.map(tag => `
-        <button class="mpr-filter-pill${tag === filterTag ? ' active' : ''}" type="button" onclick="playerFilterTracks('${tag}')">
-          ${tag === 'Tất cả' ? '🎵 ' + tag : tag}
-        </button>
-      `).join('')}
     </div>
 
     <!-- Track Table -->
@@ -292,11 +272,11 @@ function renderPlayerMoodRecs(moodId, filterTag) {
   }
 }
 
-// ─── Helper: get tracks for mood + filter ────────────────────────
-function getPlayerMoodTracks(moodId, filterTag) {
+// ─── Helper: get tracks for a mood ───────────────────────────────
+function getPlayerMoodTracks(moodId) {
   // Delegate to app-level function if available
   if (typeof getMoodTrackIndices === 'function') {
-    return getMoodTrackIndices(moodId, filterTag || 'Tất cả');
+    return getMoodTrackIndices(moodId, 'Tất cả');
   }
 
   // Fallback: filter from moodDefinitions
@@ -304,17 +284,7 @@ function getPlayerMoodTracks(moodId, filterTag) {
   const mood = defs.find(m => m.id === moodId);
   if (!mood) return [];
 
-  let indices = mood.trackIndices || [];
-  const allSongs = (typeof songs !== 'undefined') ? songs : [];
-
-  if (filterTag && filterTag !== 'Tất cả') {
-    indices = indices.filter(idx => {
-      const s = allSongs[idx];
-      return s && s.tags && s.tags.some(t => t.toLowerCase().includes(filterTag.toLowerCase()));
-    });
-  }
-
-  return indices;
+  return mood.trackIndices || [];
 }
 
 // ─── Helper: format seconds → m:ss ──────────────────────────────
@@ -340,12 +310,7 @@ function playerSaveMoodPlaylist(moodId) {
 
 function playerRefreshRecs(moodId) {
   if (typeof refreshMoodRecommendations === 'function') refreshMoodRecommendations(moodId);
-  renderPlayerMoodRecs(moodId, playerActiveFilter);
-}
-
-function playerFilterTracks(tag) {
-  playerActiveFilter = tag;
-  renderPlayerMoodRecs(playerActiveMoodId, tag);
+  renderPlayerMoodRecs(moodId);
 }
 
 function playerToggleLike(event, songIdx) {

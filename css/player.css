@@ -73,30 +73,6 @@
   flex-shrink: 0;
 }
 
-.mood-player-nav-btn {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.mood-player-nav-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
-  transform: scale(1.08);
-}
-
-.mood-player-nav-btn i {
-  font-size: 14px;
-}
-
 .mood-player-see-all {
   padding: 6px 16px;
   border-radius: 999px;
@@ -572,47 +548,6 @@
   background: rgba(255, 255, 255, 0.06);
 }
 
-/* ─── Filter Tags ──────────────────────────────────────────────── */
-.mpr-filter-bar {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  gap: 6px;
-  padding: 0 24px 14px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.mpr-filter-bar::-webkit-scrollbar {
-  display: none;
-}
-
-.mpr-filter-pill {
-  padding: 6px 14px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.6);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.mpr-filter-pill:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-}
-
-.mpr-filter-pill.active {
-  background: var(--mpr-accent, #1db954);
-  color: #000;
-  border-color: transparent;
-  font-weight: 700;
-}
-
 /* ─── Track Table ──────────────────────────────────────────────── */
 .mpr-track-table {
   position: relative;
@@ -784,12 +719,16 @@
   border: 1px solid transparent;
 }
 
+.mpr-table-head > :nth-child(5),
+.mpr-track-row > :nth-child(5) {
+  text-align: center;
+}
+
 /* Duration */
 .mpr-track-dur {
   font-size: 12.5px;
   color: rgba(255, 255, 255, 0.4);
   font-variant-numeric: tabular-nums;
-  text-align: right;
 }
 
 /* Action buttons */
@@ -891,10 +830,6 @@
 
   .mpr-track-table {
     padding: 0 12px 16px;
-  }
-
-  .mpr-filter-bar {
-    padding: 0 12px 10px;
   }
 
   .mood-player-recs-header {
