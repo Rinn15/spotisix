@@ -74,7 +74,9 @@
     const show = active && role === 'guest';
     enableAudioButton.classList.toggle('hidden', !show);
     dialogEnableAudioButton.classList.toggle('hidden', !show);
-    enableAudioButton.title = 'Nếu chưa nghe thấy nhạc, nhấn để bật hoặc thử lại âm thanh.';
+    enableAudioButton.textContent = '▶ Bật âm thanh phòng';
+    dialogEnableAudioButton.textContent = '▶ Bật âm thanh phòng';
+    enableAudioButton.title = 'Nếu chưa nghe thấy nhạc, nhấn để cho phép trình duyệt phát âm thanh.';
     dialogEnableAudioButton.title = enableAudioButton.title;
   }
 

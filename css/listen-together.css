@@ -71,6 +71,12 @@
   animation: room-invite-glow 2.2s ease-in-out infinite alternate;
 }
 #lt-invite-button:hover { box-shadow: 0 0 28px rgba(30, 215, 96, .55); }
+#lt-audio-enable {
+  color: #041409;
+  background: linear-gradient(135deg, #45f27f, #1ed760);
+  box-shadow: 0 0 20px rgba(30, 215, 96, .3);
+}
+#lt-audio-enable:hover { box-shadow: 0 0 28px rgba(30, 215, 96, .55); }
 @keyframes room-invite-glow {
   from { box-shadow: 0 0 12px rgba(30, 215, 96, .22); }
   to { box-shadow: 0 0 24px rgba(30, 215, 96, .48); }

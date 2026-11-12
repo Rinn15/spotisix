@@ -3794,6 +3794,12 @@ function playPlaylist(idx) {
 function togglePlay(e) {
   if (e) e.stopPropagation();
   if (sharedListeningRole === 'guest') {
+    if (sharedRemoteAudio && sharedPlaybackDesired && audioPlayer?.paused) {
+      void window.resumeSharedAudio?.().catch(error => {
+        showAppToast(`Không thể bật âm thanh phòng: ${error.message}`);
+      });
+      return;
+    }
     requestGuestPlaybackControl({ action: 'toggle-play' });
     return;
   }
