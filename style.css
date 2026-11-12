@@ -34,9 +34,14 @@
   --layout-gutter: clamp(16px, 2vw, 32px);
   --media-card-size: clamp(144px, 14vw, 184px);
   /* Transitions */
-  --trans-fast: 0.15s ease;
-  --trans-mid: 0.3s cubic-bezier(0.4,0,0.2,1);
-  --trans-slow: 0.5s cubic-bezier(0.4,0,0.2,1);
+  --motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-ease-emphasis: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --motion-duration-fast: 180ms;
+  --motion-duration-standard: 280ms;
+  --motion-duration-slow: 420ms;
+  --trans-fast: var(--motion-duration-fast) var(--motion-ease-standard);
+  --trans-mid: var(--motion-duration-standard) var(--motion-ease-emphasis);
+  --trans-slow: var(--motion-duration-slow) var(--motion-ease-standard);
   /* Accent gradient */
   --accent-grad: linear-gradient(135deg, var(--sp-green), var(--am-red));
 }
@@ -812,7 +817,7 @@ img { display: block; max-width: 100%; }
   to { opacity: 1; transform: translateY(0); }
 }
 
-.view.active { animation: fadeIn 0.3s ease; }
+.view.active { animation: fadeIn 0.36s var(--motion-ease-standard); }
 
 .npb-art-container.spinning .npb-art {
   animation: spin 8s linear infinite;
@@ -1324,6 +1329,47 @@ input:focus-visible {
     grid-template-columns: 240px minmax(0, 1fr) 220px;
     gap: 16px;
     padding: 10px 16px;
+  }
+}
+
+/* Shared motion defaults for controls and interactive surfaces. */
+:where(
+  button,
+  a,
+  input,
+  select,
+  textarea,
+  [role="button"],
+  [role="tab"],
+  [role="menuitem"],
+  .album-card,
+  .album-card-art img,
+  .hero-card,
+  .mix-card,
+  .category-card,
+  .player-mood-card,
+  .mood-card,
+  .playlist-item,
+  .track-item,
+  .queue-item,
+  .lt-card,
+  .lt-room-card,
+  .spotisix-rec-card,
+  .smart-btn-primary
+) {
+  transition-duration: var(--motion-duration-standard) !important;
+  transition-timing-function: var(--motion-ease-standard) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
@@ -2043,7 +2089,7 @@ input:focus-visible {
   box-shadow: 0 24px 70px rgba(0,0,0,.52), inset 0 1px rgba(255,255,255,.16);
   backdrop-filter: blur(30px) saturate(145%);
   -webkit-backdrop-filter: blur(30px) saturate(145%);
-  animation: glass-menu-in .18s ease-out;
+  animation: glass-menu-in var(--motion-duration-standard) var(--motion-ease-standard);
 }
 @keyframes glass-menu-in {
   from { opacity: 0; transform: translateY(-5px) scale(.98); }
@@ -2835,7 +2881,7 @@ body.queue-hidden .queue-panel { display: none; }
   color: #fff;
   font-size: 12px;
   line-height: 1.5;
-  animation: toast-in .2s ease-out;
+  animation: toast-in var(--motion-duration-standard) var(--motion-ease-standard);
 }
 .shared-listening-banner {
   position: fixed;
@@ -2884,7 +2930,7 @@ body.queue-hidden .queue-panel { display: none; }
   box-shadow: 0 24px 80px rgba(0,0,0,.58);
 }
 .playlist-dialog::backdrop { background: rgba(0,0,0,.7); backdrop-filter: blur(4px); }
-.playlist-dialog[open] { animation: dialog-in .18s ease-out; }
+.playlist-dialog[open] { animation: dialog-in var(--motion-duration-standard) var(--motion-ease-standard); }
 @keyframes dialog-in {
   from { opacity: 0; transform: translateY(8px) scale(.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
@@ -3145,7 +3191,7 @@ body.queue-hidden .queue-panel { display: none; }
   box-shadow: 0 24px 80px rgba(0,0,0,.55);
 }
 .nearby-dialog::backdrop { background: rgba(0,0,0,.72); backdrop-filter: blur(5px); }
-.nearby-dialog[open] { animation: dialog-in .18s ease-out; }
+.nearby-dialog[open] { animation: dialog-in var(--motion-duration-standard) var(--motion-ease-standard); }
 .nearby-dialog-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
 .nearby-dialog-header .eyebrow { color: var(--sp-green-light); font-size: 10px; font-weight: 800; letter-spacing: .8px; }
 .nearby-dialog-header h2 { margin-top: 5px; font-size: 22px; }
@@ -4362,7 +4408,7 @@ body.queue-hidden .queue-panel { display: none; }
   padding: 5px;
   color: #fff;
   user-select: none;
-  animation: contextMenuFadeIn 0.12s ease-out;
+  animation: contextMenuFadeIn var(--motion-duration-fast) var(--motion-ease-standard);
 }
 @keyframes contextMenuFadeIn {
   from { opacity: 0; transform: scale(0.96); }

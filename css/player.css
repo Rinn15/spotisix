@@ -907,7 +907,7 @@
    5. ENTRANCE ANIMATIONS
    ═══════════════════════════════════════════════════════════════════ */
 .player-mood-card {
-  animation: moodCardIn 0.5s ease both;
+  animation: moodCardIn var(--motion-duration-slow, 420ms) var(--motion-ease-standard, cubic-bezier(0.22, 1, 0.36, 1)) both;
 }
 
 .player-mood-card:nth-child(1) { animation-delay: 0s; }
@@ -931,7 +931,7 @@
 }
 
 .mpr-track-row {
-  animation: trackRowIn 0.35s ease both;
+  animation: trackRowIn var(--motion-duration-standard, 280ms) var(--motion-ease-standard, cubic-bezier(0.22, 1, 0.36, 1)) both;
 }
 
 .mpr-track-row:nth-child(1) { animation-delay: 0.05s; }

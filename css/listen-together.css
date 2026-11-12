@@ -117,7 +117,7 @@
   backdrop-filter: blur(6px);
 }
 .room-dialog[open] {
-  animation: dialog-in 0.18s ease-out;
+  animation: dialog-in var(--motion-duration-standard, 280ms) var(--motion-ease-standard, cubic-bezier(0.22, 1, 0.36, 1));
 }
 .room-dialog-header {
   display: flex;
