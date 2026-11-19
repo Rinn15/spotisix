@@ -2030,6 +2030,19 @@ input:focus-visible {
   text-align: center;
 }
 .auth-status.is-error { color: #ff777d; }
+.auth-demo-btn {
+  display: block;
+  width: 100%;
+  min-height: 42px;
+  margin-top: 8px;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 24px;
+  color: #fff;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 700;
+}
+.auth-demo-btn:hover { border-color: rgba(255,255,255,.38); background: rgba(255,255,255,.05); }
 .auth-switch-prompt {
   margin-top: 10px;
   color: var(--text-secondary);

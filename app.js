@@ -3242,7 +3242,7 @@ async function initializeAuth() {
     await loadCommunityTracksOnStartup();
     if (data.session) await window.restoreSharedListeningRoom?.();
   } catch (error) {
-    setAuthStatus(error.message || 'Không thể khởi tạo đăng nhập. Kiểm tra cấu hình Supabase.', true);
+    setAuthStatus(formatAuthError(error), true);
   }
 }
 
@@ -3388,6 +3388,21 @@ function setAuthStatus(message, isError = false) {
   status.classList.toggle('is-error', isError);
 }
 
+function formatAuthError(error) {
+  const message = String(error?.message || error || '');
+  if (/402|cached egress|egress quota|quota|service.*restricted|violations/i.test(message)) {
+    return 'Dịch vụ đăng nhập Supabase đang bị giới hạn do hạn mức dự án. Bạn có thể tiếp tục bằng chế độ demo.';
+  }
+  return message || 'Không thể xác thực. Vui lòng thử lại.';
+}
+
+function enterDemoMode() {
+  const demoSession = createDemoSession();
+  setAuthSession(demoSession);
+  setAuthStatus('Đang dùng chế độ demo. Dữ liệu nhạc chỉ lưu trong phiên này.');
+  showAppToast('Đã mở chế độ demo.');
+}
+
 function ensureAuthScreenVisible() {
   const authScreen = document.getElementById('auth-screen');
   if (authScreen) authScreen.classList.remove('hidden');
@@ -3463,7 +3478,7 @@ async function submitAuth(event) {
       setAuthSession(data.session);
     }
   } catch (error) {
-    setAuthStatus(error.message || 'Không thể xác thực. Vui lòng thử lại.', true);
+    setAuthStatus(formatAuthError(error), true);
   } finally {
     submitButton.disabled = false;
   }
